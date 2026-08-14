@@ -30,6 +30,9 @@ function Login({ onLogin, onRegister }) {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
+      console.log("LOGGED IN USER:", data.user);
+      console.log("USER ROLE:", data.user.role);
+
       onLogin(data.user);
     } catch (error) {
       setError(error.message);

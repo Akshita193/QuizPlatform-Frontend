@@ -2,6 +2,7 @@ import { useState } from "react";
 import Login from "./components/Login";
 import Register from "./components/Register";
 import AdminDashboard from "./components/AdminDashboard";
+import StudentDashboard from "./components/StudentDashboard";
 
 function App() {
   const [user, setUser] = useState(() => {
@@ -39,7 +40,16 @@ function App() {
     );
   }
 
+  if (user.role === "ADMIN") {
   return <AdminDashboard onLogout={handleLogout} />;
+}
+
+return (
+  <StudentDashboard
+    user={user}
+    onLogout={handleLogout}
+  />
+);
 }
 
 export default App;
