@@ -1,50 +1,79 @@
 import { useEffect, useState } from "react";
+import "./StudentDashboard.css";
 
 function StudentDashboard({ user, onLogout }) {
-  const [activePage, setActivePage] = useState("Dashboard");
+  // ==============================
+  // PAGE STATE
+  // ==============================
+
+  const [activePage, setActivePage] = useState("Overview");
+
+  // ==============================
+  // QUIZ LIST STATE
+  // ==============================
 
   const [quizzes, setQuizzes] = useState([]);
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
   const [quizError, setQuizError] = useState("");
-  const [selectedQuiz, setSelectedQuiz] = useState(null);
 
+  // ==============================
+  // CURRENT QUIZ STATE
+  // ==============================
+
+  const [selectedQuiz, setSelectedQuiz] = useState(null);
   const [quizQuestions, setQuizQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [questionError, setQuestionError] = useState("");
 
-  const [selectedAnswers, setSelectedAnswers] = useState({});
-  const [timeLeft, setTimeLeft] = useState(600);
+  // ==============================
+  // ANSWERS
+  // ==============================
 
+  const [selectedAnswers, setSelectedAnswers] = useState({});
+
+  // ==============================
+  // TIMER
+  // 5 MINUTES
+  // ==============================
+
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  // ==============================
+  // SUBMISSION
+  // ==============================
+
+  const [isQuizSubmitted, setIsQuizSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+
+  // ==============================
+// MY RESULTS STATE
+// ==============================
+
+const [myResults, setMyResults] = useState([]);
+const [loadingResults, setLoadingResults] = useState(false);
+const [resultsError, setResultsError] = useState("");   
+
+  // ==============================
+  // FETCH PUBLISHED QUIZZES
+  // ==============================
 
   useEffect(() => {
-    if (activePage === "Quizzes") {
+    if (
+      activePage === "Overview" ||
+      activePage === "My Quizzes"
+    ) {
       fetchPublishedQuizzes();
     }
   }, [activePage]);
 
   useEffect(() => {
-  if (activePage !== "QuizQuestions") {
-    return;
+  if (activePage === "My Results") {
+    fetchMyResults();
   }
-
-  if (quizSubmitted) {
-    return;
-  }
-
-  if (timeLeft <= 0) {
-    submitQuiz();
-    return;
-  }
-
-  const timer = setInterval(() => {
-    setTimeLeft((previousTime) => previousTime - 1);
-  }, 1000);
-
-  return () => clearInterval(timer);
-}, [activePage, timeLeft, quizSubmitted]);
+}, [activePage]);
 
   const fetchPublishedQuizzes = async () => {
     setLoadingQuizzes(true);
@@ -73,26 +102,30 @@ function StudentDashboard({ user, onLogout }) {
 
       setQuizzes(data.quizzes || []);
     } catch (error) {
-      console.error("Fetch published quizzes error:", error);
+      console.error(
+        "Fetch published quizzes error:",
+        error
+      );
+
       setQuizError(error.message);
     } finally {
       setLoadingQuizzes(false);
     }
   };
 
-  const startQuiz = async () => {
-  if (!selectedQuiz) {
-    return;
-  }
+  // ==============================
+// FETCH MY RESULTS
+// ==============================
 
-  setLoadingQuestions(true);
-  setQuestionError("");
+const fetchMyResults = async () => {
+  setLoadingResults(true);
+  setResultsError("");
 
   try {
     const token = localStorage.getItem("token");
 
     const response = await fetch(
-      `http://localhost:5001/api/quizzes/${selectedQuiz.id}/questions`,
+      "http://localhost:5001/api/quizzes/my-results",
       {
         method: "GET",
         headers: {
@@ -103,336 +136,1673 @@ function StudentDashboard({ user, onLogout }) {
 
     const data = await response.json();
 
+    console.log("MY RESULTS RESPONSE:", data);
+
     if (!response.ok) {
       throw new Error(
-        data.message || "Failed to load quiz questions"
+        data.message || "Failed to fetch results"
       );
     }
-    setTimeLeft(600);
-    setQuizQuestions(data.questions || []);
+
+    setMyResults(data.results || []);
+  } catch (error) {
+    console.error("Fetch my results error:", error);
+    setResultsError(error.message);
+  } finally {
+    setLoadingResults(false);
+  }
+};
+
+  // ==============================
+  // START QUIZ
+  // ==============================
+
+  const handleStartQuiz = async (quiz) => {
+    try {
+      setQuestionError("");
+      setLoadingQuestions(true);
+
+      const token = localStorage.getItem("token");
+
+      // Reset quiz state
+      setSelectedAnswers({});
+      setCurrentQuestionIndex(0);
+      setTimeLeft(5 * 60);
+      setIsQuizSubmitted(false);
+      setIsSubmitting(false);
+
+      // --------------------------------
+      // CHECK WHETHER ALREADY ATTEMPTED
+      // --------------------------------
+
+      const attemptResponse = await fetch(
+        `http://localhost:5001/api/quizzes/${quiz.id}/attempt`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const attemptData = await attemptResponse.json();
+
+      if (!attemptResponse.ok) {
+        throw new Error(
+          attemptData.message ||
+            "Failed to check quiz attempt"
+        );
+      }
+
+      // Already submitted
+      if (attemptData.attempted) {
+        alert(
+          "You have already submitted this quiz."
+        );
+        return;
+      }
+
+      // --------------------------------
+      // LOAD QUIZ QUESTIONS
+      // --------------------------------
+
+      const response = await fetch(
+        `http://localhost:5001/api/quizzes/${quiz.id}/questions`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to load quiz"
+        );
+      }
+
+      setSelectedQuiz(data.quiz);
+      setQuizQuestions(data.questions || []);
+      setCurrentQuestionIndex(0);
+      setSelectedAnswers({});
+      setTimeLeft(
+  Number(data.quiz.duration_minutes) * 60
+);
+      setIsQuizSubmitted(false);
+
+      setActivePage("QuizScreen");
+    } catch (error) {
+      console.error(
+        "Start quiz error:",
+        error
+      );
+
+      setQuestionError(error.message);
+      alert(error.message);
+    } finally {
+      setLoadingQuestions(false);
+    }
+  };
+
+  // ==============================
+  // TIMER
+  // ==============================
+
+  useEffect(() => {
+    if (
+      activePage !== "QuizScreen" ||
+      isQuizSubmitted
+    ) {
+      return;
+    }
+
+    if (timeLeft <= 0) {
+      handleSubmitQuiz(true);
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setTimeLeft((previousTime) => {
+        if (previousTime <= 1) {
+          return 0;
+        }
+
+        return previousTime - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [
+    activePage,
+    timeLeft,
+    isQuizSubmitted,
+  ]);
+
+  // ==============================
+  // FORMAT TIMER
+  // ==============================
+
+  const formatTime = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+
+    const remainingSeconds = seconds % 60;
+
+    return `${String(minutes).padStart(
+      2,
+      "0"
+    )}:${String(remainingSeconds).padStart(
+      2,
+      "0"
+    )}`;
+  };
+
+  // ==============================
+  // SELECT ANSWER
+  // ==============================
+
+  const handleAnswerSelect = (
+    questionId,
+    optionId
+  ) => {
+    if (isQuizSubmitted || isSubmitting) {
+      return;
+    }
+
+    // Make sure IDs are numbers
+    const numericQuestionId = Number(
+      questionId
+    );
+
+    const numericOptionId = Number(
+      optionId
+    );
+
+    // Prevent NaN from entering state
+    if (
+      !Number.isInteger(
+        numericQuestionId
+      ) ||
+      !Number.isInteger(
+        numericOptionId
+      )
+    ) {
+      console.error(
+        "Invalid question or option ID:",
+        {
+          questionId,
+          optionId,
+        }
+      );
+
+      return;
+    }
+
+    setSelectedAnswers(
+      (previousAnswers) => ({
+        ...previousAnswers,
+        [numericQuestionId]:
+          numericOptionId,
+      })
+    );
+  };
+
+  // ==============================
+  // NEXT QUESTION
+  // ==============================
+
+  const handleNextQuestion = () => {
+    if (
+      currentQuestionIndex <
+      quizQuestions.length - 1
+    ) {
+      setCurrentQuestionIndex(
+        (previousIndex) =>
+          previousIndex + 1
+      );
+    }
+  };
+
+  // ==============================
+  // PREVIOUS QUESTION
+  // ==============================
+
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(
+        (previousIndex) =>
+          previousIndex - 1
+      );
+    }
+  };
+
+  // ==============================
+  // SUBMIT QUIZ
+  // ==============================
+
+  const handleSubmitQuiz = async (
+    automaticSubmit = false
+  ) => {
+    // Prevent double submission
+    if (
+      isQuizSubmitted ||
+      isSubmitting
+    ) {
+      return;
+    }
+
+    if (!selectedQuiz) {
+      alert("No quiz selected.");
+      return;
+    }
+
+    // ==================================
+    // CHECK UNANSWERED QUESTIONS
+    // Only for normal submission
+    // ==================================
+
+    if (!automaticSubmit) {
+      const unansweredQuestions =
+        quizQuestions.filter(
+          (question) =>
+            !selectedAnswers[
+              question.id
+            ]
+        );
+
+      if (
+        unansweredQuestions.length > 0
+      ) {
+        alert(
+          `Please answer all questions before submitting. ${unansweredQuestions.length} question(s) are unanswered.`
+        );
+
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const token =
+        localStorage.getItem("token");
+
+      // ==================================
+      // CREATE ANSWERS ARRAY
+      // ==================================
+
+      const answers = quizQuestions.map(
+        (question) => ({
+          question_id: Number(
+            question.id
+          ),
+
+          selected_option_id:
+            selectedAnswers[
+              question.id
+            ]
+              ? Number(
+                  selectedAnswers[
+                    question.id
+                  ]
+                )
+              : null,
+        })
+      );
+
+      // ==================================
+      // IMPORTANT DEBUG LOG
+      // ==================================
+
+      console.log(
+        "FINAL ANSWERS SENT TO BACKEND:",
+        answers
+      );
+
+      // ==================================
+      // CHECK FOR INVALID NaN VALUES
+      // ==================================
+
+      const hasInvalidAnswer =
+        answers.some(
+          (answer) =>
+            !Number.isInteger(
+              answer.question_id
+            ) ||
+            (answer.selected_option_id !==
+              null &&
+              !Number.isInteger(
+                answer.selected_option_id
+              ))
+        );
+
+      if (hasInvalidAnswer) {
+        console.error(
+          "Invalid answer data:",
+          answers
+        );
+
+        throw new Error(
+          "Invalid question or option ID detected."
+        );
+      }
+
+      // ==================================
+      // SEND TO BACKEND
+      // ==================================
+
+      const response = await fetch(
+        `http://localhost:5001/api/quizzes/${selectedQuiz.id}/submit`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization: `Bearer ${token}`,
+          },
+
+          body: JSON.stringify({
+            answers,
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      console.log(
+        "SUBMIT QUIZ RESPONSE:",
+        data
+      );
+
+      // ==================================
+      // HANDLE BACKEND ERROR
+      // ==================================
+
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            "Failed to submit quiz"
+        );
+      }
+
+      // ==================================
+      // SUCCESS
+      // ==================================
+
+      setIsQuizSubmitted(true);
+
+      if (automaticSubmit) {
+        alert(
+          "Time is up! Your quiz has been submitted."
+        );
+      } else {
+        alert(
+          "Quiz submitted successfully!"
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Submit quiz error:",
+        error
+      );
+
+      alert(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // ==============================
+  // EXIT QUIZ
+  // ==============================
+
+  const handleExitQuiz = () => {
+    const confirmExit =
+      window.confirm(
+        "Are you sure you want to leave this quiz? Your current answers will be lost."
+      );
+
+    if (!confirmExit) {
+      return;
+    }
+
+    setSelectedQuiz(null);
+    setQuizQuestions([]);
+    setSelectedAnswers({});
     setCurrentQuestionIndex(0);
-    setActivePage("QuizQuestions");
-  } catch (error) {
-    console.error("Start quiz error:", error);
-    setQuestionError(error.message);
-  } finally {
-    setLoadingQuestions(false);
-  }
-};
-
-const handleAnswerSelect = (questionId, optionId) => {
-  setSelectedAnswers((previousAnswers) => ({
-    ...previousAnswers,
-    [questionId]: optionId,
-  }));
-};
-
-const submitQuiz = async () => {
-  if (isSubmitting || quizSubmitted) {
-    return;
-  }
-
-  setIsSubmitting(true);
-
-  try {
-    console.log("Submitting quiz...");
-    console.log("Selected answers:", selectedAnswers);
-
-    // Temporary for now.
-    // We will connect this to the backend submission
-    // endpoint after the UI flow is working.
-
-    setQuizSubmitted(true);
-
-    alert("Quiz submitted successfully!");
-  } catch (error) {
-    console.error("Submit quiz error:", error);
-    alert("Failed to submit quiz.");
-  } finally {
+    setTimeLeft(0);
+    setIsQuizSubmitted(false);
     setIsSubmitting(false);
-  }
-};
+    setQuestionError("");
 
-const formatTime = (seconds) => {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
+    setActivePage("My Quizzes");
+  };
 
-  return `${String(minutes).padStart(2, "0")}:${String(
-    remainingSeconds
-  ).padStart(2, "0")}`;
-};
+  // ==============================
+  // RESET QUIZ AFTER SUBMISSION
+  // ==============================
+
+  const handleBackToMyQuizzes = () => {
+    setSelectedQuiz(null);
+    setQuizQuestions([]);
+    setSelectedAnswers({});
+    setCurrentQuestionIndex(0);
+    setTimeLeft(0);
+    setIsQuizSubmitted(false);
+    setIsSubmitting(false);
+    setQuestionError("");
+
+    setActivePage("My Quizzes");
+  };
+
+  // ==============================
+  // CURRENT QUESTION
+  // ==============================
+
+  const currentQuestion =
+    quizQuestions[
+      currentQuestionIndex
+    ];
+
+  // ==============================
+  // RENDER
+  // ==============================
 
   return (
-    <div className="admin-dashboard">
-      <aside className="sidebar">
-        <h2>QuizPlatform</h2>
+    <div className="student-dashboard">
 
-        <p className="sidebar-role">Student</p>
+      {/* =====================================
+          SIDEBAR
+      ===================================== */}
 
-        <button
-          onClick={() => setActivePage("Dashboard")}
-          className={activePage === "Dashboard" ? "active" : ""}
-        >
-          Dashboard
-        </button>
+      <aside className="student-sidebar">
 
-        <button
-          onClick={() => setActivePage("Quizzes")}
-          className={activePage === "Quizzes" ? "active" : ""}
-        >
-          Quizzes
-        </button>
+        {/* BRAND */}
 
-        <button
-          onClick={() => setActivePage("Results")}
-          className={activePage === "Results" ? "active" : ""}
-        >
-          My Results
-        </button>
+        <div className="student-brand">
+          <div className="brand-icon">
+            🎓
+          </div>
 
-        <button onClick={onLogout}>
-          Logout
-        </button>
+          <span>
+            QuizPlatform
+          </span>
+        </div>
+
+        {/* PROFILE */}
+
+        <div className="student-profile">
+
+          <div className="student-avatar">
+            {user?.name
+              ?.charAt(0)
+              ?.toUpperCase() || "S"}
+          </div>
+
+          <div>
+            <h4>
+              {user?.name ||
+                "Student"}
+            </h4>
+
+            <span>
+              Student
+            </span>
+          </div>
+
+        </div>
+
+        {/* NAVIGATION */}
+
+        <nav className="student-nav">
+
+          <button
+            className={
+              activePage ===
+              "Overview"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setActivePage(
+                "Overview"
+              )
+            }
+          >
+            <span>⌂</span>
+            Overview
+          </button>
+
+          <button
+            className={
+              activePage ===
+              "My Quizzes"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setActivePage(
+                "My Quizzes"
+              )
+            }
+          >
+            <span>▣</span>
+            My Quizzes
+          </button>
+
+          <button
+            className={
+              activePage ===
+              "My Results"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setActivePage(
+                "My Results"
+              )
+            }
+          >
+            <span>◒</span>
+            My Results
+          </button>
+
+          <button
+            className={
+              activePage ===
+              "Profile"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setActivePage(
+                "Profile"
+              )
+            }
+          >
+            <span>♙</span>
+            Profile
+          </button>
+
+          <button
+            className={
+              activePage ===
+              "Settings"
+                ? "active"
+                : ""
+            }
+            onClick={() =>
+              setActivePage(
+                "Settings"
+              )
+            }
+          >
+            <span>⚙</span>
+            Settings
+          </button>
+
+          <button
+            onClick={onLogout}
+          >
+            <span>↪</span>
+            Logout
+          </button>
+
+        </nav>
+
+        {/* LEARNING CARD */}
+
+        <div className="learning-card">
+
+          <h4>
+            Keep Learning!
+          </h4>
+
+          <p>
+            Every quiz makes you
+            better 🚀
+          </p>
+
+        </div>
+
       </aside>
 
-      <main className="main-content">
-        <header className="dashboard-header">
+      {/* =====================================
+          MAIN CONTENT
+      ===================================== */}
+
+      <main className="student-main">
+
+        {/* =================================
+            HEADER
+        ================================= */}
+
+        <header className="student-header">
+
           <div>
-            <h1>{activePage}</h1>
+
+            <h1>
+              Welcome back,{" "}
+              {user?.name ||
+                "Student"}! 👋
+            </h1>
 
             <p>
-              Welcome, {user?.name || "Student"}!
+              Keep learning, keep
+              growing.
             </p>
+
           </div>
+
+          <button
+            className="notification-button"
+            type="button"
+          >
+            ♧
+            <span></span>
+          </button>
+
         </header>
 
-        {activePage === "Dashboard" && (
-          <section className="dashboard-placeholder">
-            <h2>Student Dashboard</h2>
+        {/* =====================================
+            OVERVIEW
+        ===================================== */}
 
-            <p>
-              Welcome to QuizPlatform. Choose a quiz to get started.
-            </p>
-          </section>
+        {activePage ===
+          "Overview" && (
+          <>
+
+            {/* STATS */}
+
+            <section className="student-stats">
+
+              <div className="student-stat-card blue">
+
+                <div className="stat-icon">
+                  ▣
+                </div>
+
+                <div>
+                  <p>
+                    Available Quizzes
+                  </p>
+
+                  <h2>
+                    {quizzes.length}
+                  </h2>
+
+                  <span>
+                    Take a quiz
+                  </span>
+                </div>
+
+              </div>
+
+              <div className="student-stat-card green">
+
+                <div className="stat-icon">
+                  ✓
+                </div>
+
+                <div>
+                  <p>
+                    Completed Quizzes
+                  </p>
+
+                  <h2>
+                    0
+                  </h2>
+
+                  <span>
+                    Keep it up!
+                  </span>
+                </div>
+
+              </div>
+
+              <div className="student-stat-card purple">
+
+                <div className="stat-icon">
+                  ◔
+                </div>
+
+                <div>
+                  <p>
+                    Average Score
+                  </p>
+
+                  <h2>
+                    —
+                  </h2>
+
+                  <span>
+                    Your performance
+                  </span>
+                </div>
+
+              </div>
+
+              <div className="student-stat-card orange">
+
+                <div className="stat-icon">
+                  ♕
+                </div>
+
+                <div>
+                  <p>
+                    Certificates Earned
+                  </p>
+
+                  <h2>
+                    0
+                  </h2>
+
+                  <span>
+                    Keep going!
+                  </span>
+                </div>
+
+              </div>
+
+            </section>
+
+            {/* CONTENT GRID */}
+
+            <section className="student-content-grid">
+
+              {/* QUIZZES */}
+
+              <div className="student-quizzes-section">
+
+                <div className="section-heading">
+
+                  <h2>
+                    Your Quizzes
+                  </h2>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setActivePage(
+                        "My Quizzes"
+                      )
+                    }
+                  >
+                    View All
+                  </button>
+
+                </div>
+
+                {loadingQuizzes && (
+                  <div className="glass-message">
+                    Loading quizzes...
+                  </div>
+                )}
+
+                {quizError && (
+                  <div className="glass-message error">
+                    {quizError}
+                  </div>
+                )}
+
+                {!loadingQuizzes &&
+                  !quizError &&
+                  quizzes.length ===
+                    0 && (
+                    <div className="glass-message">
+                      No quizzes are
+                      currently
+                      available.
+                    </div>
+                  )}
+
+                {!loadingQuizzes &&
+                  !quizError &&
+                  quizzes
+                    .slice(0, 3)
+                    .map(
+                      (
+                        quiz,
+                        index
+                      ) => (
+
+                        <div
+                          className="student-quiz-card"
+                          key={
+                            quiz.id
+                          }
+                        >
+
+                          <div
+                            className={`quiz-icon quiz-color-${index % 3}`}
+                          >
+                            ▣
+                          </div>
+
+                          <div className="quiz-info">
+
+                            <h3>
+                              {quiz.title}
+                            </h3>
+
+                            <p>
+                              {quiz.description ||
+                                "Test your knowledge and improve your skills."}
+                            </p>
+
+                          </div>
+
+                          <div className="quiz-question-count">
+                            Quiz
+                          </div>
+
+                          <button
+                            type="button"
+                            className="start-quiz-button"
+                            onClick={() =>
+                              handleStartQuiz(
+                                quiz
+                              )
+                            }
+                            disabled={
+                              loadingQuestions
+                            }
+                          >
+                            {loadingQuestions
+                              ? "Loading..."
+                              : "Start Quiz"}
+                          </button>
+
+                        </div>
+                      )
+                    )}
+
+              </div>
+
+              {/* RIGHT COLUMN */}
+
+              <div className="student-right-column">
+
+                {/* PROGRESS */}
+
+                <div className="progress-card">
+
+                  <div className="section-heading">
+
+                    <h2>
+                      Progress Overview
+                    </h2>
+
+                  </div>
+
+                  <div className="progress-circle">
+
+                    <div className="progress-inner">
+
+                      <strong>
+                        0%
+                      </strong>
+
+                      <span>
+                        Overall Progress
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                  <div className="progress-legend">
+
+                    <div>
+                      <span className="dot green-dot"></span>
+
+                      Completed
+
+                      <strong>
+                        0 Quizzes
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span className="dot blue-dot"></span>
+
+                      In Progress
+
+                      <strong>
+                        0 Quizzes
+                      </strong>
+                    </div>
+
+                    <div>
+                      <span className="dot gray-dot"></span>
+
+                      Not Attempted
+
+                      <strong>
+                        {quizzes.length}{" "}
+                        Quizzes
+                      </strong>
+                    </div>
+
+                  </div>
+
+                </div>
+
+                {/* RECENT ACTIVITY */}
+
+                <div className="activity-card">
+
+                  <h2>
+                    Recent Activity
+                  </h2>
+
+                  <div className="activity-item">
+
+                    <div className="activity-icon green-bg">
+                      ✓
+                    </div>
+
+                    <div>
+                      <p>
+                        Quiz Completed
+                      </p>
+
+                      <span>
+                        No completed
+                        quizzes yet
+                      </span>
+                    </div>
+
+                    <small>
+                      —
+                    </small>
+
+                  </div>
+
+                  <div className="activity-item">
+
+                    <div className="activity-icon blue-bg">
+                      ▣
+                    </div>
+
+                    <div>
+                      <p>
+                        Quiz Attempted
+                      </p>
+
+                      <span>
+                        Start your
+                        first quiz
+                      </span>
+                    </div>
+
+                    <small>
+                      Now
+                    </small>
+
+                  </div>
+
+                  <div className="activity-item">
+
+                    <div className="activity-icon purple-bg">
+                      ♙
+                    </div>
+
+                    <div>
+                      <p>
+                        Joined Platform
+                      </p>
+
+                      <span>
+                        Welcome to
+                        QuizPlatform
+                      </span>
+                    </div>
+
+                    <small>
+                      —
+                    </small>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+            </section>
+
+          </>
         )}
 
-        {activePage === "QuizDetails" && selectedQuiz && (
-  <section className="dashboard-placeholder">
-    <button
-      type="button"
-      onClick={() => {
-        setSelectedQuiz(null);
-        setActivePage("Quizzes");
-      }}
-    >
-      ← Back to Quizzes
-    </button>
+        {/* =====================================
+            MY QUIZZES
+        ===================================== */}
 
-    <h2>{selectedQuiz.title}</h2>
+        {activePage ===
+          "My Quizzes" && (
+          <section className="page-section">
 
-    <p>
-      {selectedQuiz.description ||
-        "No description available."}
-    </p>
+            <div className="section-heading">
 
-    <div className="quiz-details-card">
-      <h3>Quiz Details</h3>
+              <div>
 
-      <p>
-        <strong>Quiz ID:</strong> {selectedQuiz.id}
-      </p>
+                <h2>
+                  My Quizzes
+                </h2>
 
-      <p>
-        <strong>Status:</strong> Published
-      </p>
+                <p>
+                  Choose a quiz and
+                  test your knowledge.
+                </p>
 
-      <button
-  type="button"
-  onClick={startQuiz}
-  disabled={loadingQuestions}
->
-  {loadingQuestions ? "Loading..." : "Start Quiz"}
-</button>
-    </div>
-  </section>
-)}
+              </div>
 
-        {activePage === "Quizzes" && (
-          <section className="dashboard-placeholder">
-            <h2>Available Quizzes</h2>
+            </div>
 
             {loadingQuizzes && (
-              <p>Loading quizzes...</p>
+              <div className="glass-message">
+                Loading quizzes...
+              </div>
             )}
 
             {quizError && (
-              <p className="error-message">
+              <div className="glass-message error">
                 {quizError}
-              </p>
+              </div>
             )}
 
             {!loadingQuizzes &&
               !quizError &&
-              quizzes.length === 0 && (
-                <p>
-                  No quizzes are currently available.
-                </p>
-              )}
-
-            {!loadingQuizzes &&
-              !quizError &&
-              quizzes.length > 0 && (
-                <div className="quiz-list">
-                  {quizzes.map((quiz) => (
-                    <div
-                      className="quiz-card"
-                      key={quiz.id}
-                    >
-                      <h3>{quiz.title}</h3>
-
-                      <p>
-                        {quiz.description ||
-                          "No description available."}
-                      </p>
-
-                      <button
-  type="button"
-  onClick={() => {
-    setSelectedQuiz(quiz);
-    setActivePage("QuizDetails");
-  }}
->
-  Start Quiz
-</button>
-                    </div>
-                  ))}
+              quizzes.length ===
+                0 && (
+                <div className="glass-message">
+                  No quizzes are
+                  currently
+                  available.
                 </div>
               )}
+
+            <div className="all-quizzes-grid">
+
+              {quizzes.map(
+                (
+                  quiz,
+                  index
+                ) => (
+
+                  <div
+                    className="large-quiz-card"
+                    key={quiz.id}
+                  >
+
+                    <div
+                      className={`large-quiz-icon quiz-color-${index % 3}`}
+                    >
+                      ▣
+                    </div>
+
+                    <h3>
+                      {quiz.title}
+                    </h3>
+
+                    <p>
+                      {quiz.description ||
+                        "Test your knowledge and improve your skills."}
+                    </p>
+
+                    <button
+                      type="button"
+                      className="start-quiz-button"
+                      onClick={() =>
+                        handleStartQuiz(
+                          quiz
+                        )
+                      }
+                      disabled={
+                        loadingQuestions
+                      }
+                    >
+                      {loadingQuestions
+                        ? "Loading..."
+                        : "Start Quiz"}
+                    </button>
+
+                  </div>
+
+                )
+              )}
+
+            </div>
+
           </section>
         )}
 
-        {activePage === "QuizQuestions" && (
-  <section className="dashboard-placeholder">
-    {questionError && (
-      <p className="error-message">
-        {questionError}
-      </p>
-    )}
+        {/* =====================================
+            QUIZ SCREEN
+        ===================================== */}
 
-    {loadingQuestions && (
-      <p>Loading questions...</p>
-    )}
+        {activePage ===
+          "QuizScreen" && (
+          <section className="quiz-screen">
 
-    {!loadingQuestions &&
-      !questionError &&
-      quizQuestions.length > 0 && (
-        <>
-        <div className="quiz-timer">
-  Time Left: {formatTime(timeLeft)}
-</div>
-          <h2>
-            Question {currentQuestionIndex + 1} of{" "}
-            {quizQuestions.length}
-          </h2>
+            {/* QUIZ HEADER */}
 
-          <div className="quiz-question-card">
-            <h3>
-              {
-                quizQuestions[currentQuestionIndex]
-                  .question_text
-              }
-            </h3>
+            <div className="quiz-screen-header">
 
-            <div className="quiz-options">
-  {quizQuestions[
-    currentQuestionIndex
-  ].options.map((option) => {
-    const currentQuestion =
-      quizQuestions[currentQuestionIndex];
+              <button
+                type="button"
+                className="back-quiz-button"
+                onClick={
+                  handleExitQuiz
+                }
+                disabled={
+                  isSubmitting
+                }
+              >
+                ← Back to Quizzes
+              </button>
 
-    const isSelected =
-      selectedAnswers[currentQuestion.id] === option.id;
+              <div className="quiz-screen-title">
 
-    return (
+                <h2>
+                  {selectedQuiz?.title}
+                </h2>
+
+                <p>
+                  Question{" "}
+                  {currentQuestionIndex +
+                    1}{" "}
+                  of{" "}
+                  {
+                    quizQuestions.length
+                  }
+                </p>
+
+              </div>
+
+              {/* TIMER */}
+
+              <div
+                className={
+                  timeLeft <= 60
+                    ? "quiz-timer warning"
+                    : "quiz-timer"
+                }
+              >
+                ⏱{" "}
+                {formatTime(
+                  timeLeft
+                )}
+              </div>
+
+            </div>
+
+            {/* ERROR */}
+
+            {questionError && (
+              <div className="glass-message error">
+                {questionError}
+              </div>
+            )}
+
+            {/* LOADING */}
+
+            {loadingQuestions && (
+              <div className="glass-message">
+                Loading quiz...
+              </div>
+            )}
+
+            {/* QUESTION */}
+
+            {!loadingQuestions &&
+              currentQuestion &&
+              !isQuizSubmitted && (
+                <div className="quiz-question-card">
+
+                  <div className="question-number">
+                    Question{" "}
+                    {currentQuestionIndex +
+                      1}
+                  </div>
+
+                  <h3>
+                    {
+                      currentQuestion.question_text
+                    }
+                  </h3>
+
+                  {/* OPTIONS */}
+
+                  <div className="options-list">
+
+                    {currentQuestion.options?.map(
+                      (option) => {
+
+                        const isSelected =
+                          selectedAnswers[
+                            currentQuestion.id
+                          ] ===
+                          option.id;
+
+                        return (
+                          <button
+                            key={
+                              option.id
+                            }
+                            type="button"
+                            className={
+                              isSelected
+                                ? "quiz-option selected"
+                                : "quiz-option"
+                            }
+                            onClick={() =>
+                              handleAnswerSelect(
+                                currentQuestion.id,
+                                option.id
+                              )
+                            }
+                            disabled={
+                              isSubmitting
+                            }
+                          >
+
+                            <span className="option-circle">
+
+                              {isSelected
+                                ? "✓"
+                                : ""}
+
+                            </span>
+
+                            <span>
+                              {
+                                option.option_text
+                              }
+                            </span>
+
+                          </button>
+                        );
+                      }
+                    )}
+
+                  </div>
+
+                  {/* NAVIGATION */}
+
+                  <div className="quiz-navigation">
+
+                    <button
+                      type="button"
+                      className="previous-button"
+                      disabled={
+                        currentQuestionIndex ===
+                        0 ||
+                        isSubmitting
+                      }
+                      onClick={
+                        handlePreviousQuestion
+                      }
+                    >
+                      ← Previous
+                    </button>
+
+                    {/* QUESTION DOTS */}
+
+                    <div className="question-progress">
+
+                      {quizQuestions.map(
+                        (
+                          question,
+                          index
+                        ) => (
+
+                          <button
+                            key={
+                              question.id
+                            }
+                            type="button"
+                            className={
+                              index ===
+                              currentQuestionIndex
+                                ? "question-dot active"
+                                : selectedAnswers[
+                                    question.id
+                                  ]
+                                ? "question-dot answered"
+                                : "question-dot"
+                            }
+                            onClick={() =>
+                              setCurrentQuestionIndex(
+                                index
+                              )
+                            }
+                            disabled={
+                              isSubmitting
+                            }
+                          >
+                            {index +
+                              1}
+                          </button>
+
+                        )
+                      )}
+
+                    </div>
+
+                    {/* NEXT / SUBMIT */}
+
+                    {currentQuestionIndex <
+                    quizQuestions.length -
+                      1 ? (
+
+                      <button
+                        type="button"
+                        className="next-button"
+                        onClick={
+                          handleNextQuestion
+                        }
+                        disabled={
+                          isSubmitting
+                        }
+                      >
+                        Next →
+                      </button>
+
+                    ) : (
+
+                      <button
+                        type="button"
+                        className="submit-quiz-button"
+                        onClick={() =>
+                          handleSubmitQuiz(
+                            false
+                          )
+                        }
+                        disabled={
+                          isQuizSubmitted ||
+                          isSubmitting
+                        }
+                      >
+
+                        {isSubmitting
+                          ? "Submitting..."
+                          : "Submit Quiz ✓"}
+
+                      </button>
+
+                    )}
+
+                  </div>
+
+                </div>
+              )}
+
+            {/* =====================================
+                SUBMITTED
+            ===================================== */}
+
+            {isQuizSubmitted && (
+              <div className="quiz-submitted-card">
+
+                <div className="success-icon">
+                  ✓
+                </div>
+
+                <h2>
+                  Quiz Submitted!
+                </h2>
+
+                <p>
+                  Your answers have
+                  been submitted
+                  successfully.
+                </p>
+
+                <p>
+                  Your result will be
+                  available once the
+                  admin declares it.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={
+                    handleBackToMyQuizzes
+                  }
+                >
+                  Back to My Quizzes
+                </button>
+
+              </div>
+            )}
+
+          </section>
+        )}
+
+        {/* =====================================
+            MY RESULTS
+        ===================================== */}
+
+        {/* =====================================
+    MY RESULTS
+===================================== */}
+
+{activePage === "My Results" && (
+  <section className="page-section">
+
+    <div className="section-heading">
+      <div>
+        <h2>My Results</h2>
+
+        <p>
+          View your quiz performance and scores.
+        </p>
+      </div>
+
       <button
-        key={option.id}
         type="button"
-        className={
-          isSelected
-            ? "quiz-option selected"
-            : "quiz-option"
-        }
-        onClick={() =>
-          handleAnswerSelect(
-            currentQuestion.id,
-            option.id
-          )
-        }
+        className="refresh-results-button"
+        onClick={fetchMyResults}
+        disabled={loadingResults}
       >
-        {option.option_text}
+        {loadingResults ? "Refreshing..." : "Refresh"}
       </button>
-    );
-  })}
-</div>
+    </div>
 
-            <div className="quiz-navigation">
-  <button
-    type="button"
-    onClick={() => {
-  if (currentQuestionIndex > 0) {
-    setCurrentQuestionIndex(currentQuestionIndex - 1);
-  }
-}}
-    disabled={currentQuestionIndex === 0}
-  >
-    Previous
-  </button>
+    {/* LOADING */}
 
-  <button
-    type="button"
-    onClick={() => {
-  if (currentQuestionIndex < quizQuestions.length - 1) {
-    setCurrentQuestionIndex(currentQuestionIndex + 1);
-  }
-}}
-    disabled={
-      currentQuestionIndex ===
-      quizQuestions.length - 1
-    }
-  >
-    Next
-  </button>
-</div>
+    {loadingResults && (
+      <div className="glass-message">
+        Loading your results...
+      </div>
+    )}
 
-<div className="quiz-submit-container">
-  <button
-    type="button"
-    className="submit-quiz-button"
-    onClick={submitQuiz}
-    disabled={isSubmitting || quizSubmitted}
-  >
-    {isSubmitting
-      ? "Submitting..."
-      : quizSubmitted
-      ? "Quiz Submitted"
-      : "Submit Quiz"}
-  </button>
-</div>
+    {/* ERROR */}
+
+    {resultsError && (
+      <div className="glass-message error">
+        {resultsError}
+      </div>
+    )}
+
+    {/* NO RESULTS */}
+
+    {!loadingResults &&
+      !resultsError &&
+      myResults.length === 0 && (
+        <div className="result-coming-card">
+
+          <div className="result-icon">
+            ◔
           </div>
-        </>
+
+          <h3>
+            No Results Yet
+          </h3>
+
+          <p>
+            Your quiz results will appear here
+            after you submit a quiz.
+          </p>
+
+        </div>
       )}
+
+    {/* RESULTS */}
+
+    {!loadingResults &&
+      !resultsError &&
+      myResults.length > 0 && (
+
+        <div className="results-list">
+
+          {myResults.map((result) => {
+
+            const score = Number(result.score) || 0;
+
+            const totalQuestions =
+              Number(result.total_questions) || 0;
+
+            const percentage =
+              totalQuestions > 0
+                ? Math.round(
+                    (score / totalQuestions) * 100
+                  )
+                : 0;
+
+            return (
+              <div
+                className="student-result-card"
+                key={result.attempt_id}
+              >
+
+                {/* QUIZ ICON */}
+
+                <div className="result-quiz-icon">
+                  ◔
+                </div>
+
+                {/* QUIZ INFORMATION */}
+
+                <div className="result-quiz-info">
+
+                  <h3>
+                    {result.title}
+                  </h3>
+
+                  <p>
+                    {result.description ||
+                      "Quiz completed successfully."}
+                  </p>
+
+                  <span>
+                    Submitted:{" "}
+                    {result.submitted_at
+                      ? new Date(
+                          result.submitted_at
+                        ).toLocaleString()
+                      : "—"}
+                  </span>
+
+                </div>
+
+                {/* SCORE */}
+
+                <div className="result-score">
+
+                  <strong>
+                    {score}/{totalQuestions}
+                  </strong>
+
+                  <span>
+                    {percentage}%
+                  </span>
+
+                </div>
+
+              </div>
+            );
+          })}
+
+        </div>
+      )}
+
   </section>
 )}
 
-        {activePage === "Results" && (
-          <section className="dashboard-placeholder">
-            <h2>My Results</h2>
+        {/* =====================================
+            PROFILE
+        ===================================== */}
 
-            <p>
-              Your quiz results will appear here.
-            </p>
+        {activePage ===
+          "Profile" && (
+          <section className="page-section">
+
+            <h2>
+              Profile
+            </h2>
+
+            <div className="profile-card">
+
+              <div className="large-profile-avatar">
+                {user?.name
+                  ?.charAt(0)
+                  ?.toUpperCase() ||
+                  "S"}
+              </div>
+
+              <h2>
+                {user?.name}
+              </h2>
+
+              <p>
+                {user?.email}
+              </p>
+
+              <span>
+                Student
+              </span>
+
+            </div>
+
           </section>
         )}
+
+        {/* =====================================
+            SETTINGS
+        ===================================== */}
+
+        {activePage ===
+          "Settings" && (
+          <section className="page-section">
+
+            <h2>
+              Settings
+            </h2>
+
+            <div className="settings-card">
+
+              <h3>
+                Account Settings
+              </h3>
+
+              <p>
+                Your account settings
+                will be available
+                here.
+              </p>
+
+            </div>
+
+          </section>
+        )}
+
       </main>
     </div>
   );
