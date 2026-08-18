@@ -1441,3 +1441,37 @@
 .inline-question-edit {
   margin-top: 20px;
 }
+/* =========================================================
+   FULL SCREEN ADMIN DASHBOARD
+   ========================================================= */
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+#root {
+  max-width: none;
+}
+
+.admin-dashboard {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+}
+
+.dashboard-content {
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}

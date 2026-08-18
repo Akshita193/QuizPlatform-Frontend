@@ -1,4 +1,13 @@
 import { useEffect, useState } from "react";
+
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import "./StudentDashboard.css";
 
 function StudentDashboard({ user, onLogout }) {
@@ -674,9 +683,7 @@ const getResultStatus = (result) => {
 
   const percentage =
     total > 0
-      ? Math.round(
-          (score / total) * 100
-        )
+      ? Math.round((score / total) * 100)
       : 0;
 
   return percentage >= 40
@@ -684,6 +691,132 @@ const getResultStatus = (result) => {
     : "FAIL";
 };
 
+
+// ==============================
+// DASHBOARD STATISTICS
+// ==============================
+
+const completedQuizzes = myResults.length;
+
+const passedQuizzes = myResults.filter((result) => {
+  return getResultStatus(result).toUpperCase() === "PASS";
+}).length;
+
+const failedQuizzes =
+  completedQuizzes - passedQuizzes;
+
+const averageScore =
+  completedQuizzes > 0
+    ? Math.round(
+        myResults.reduce((total, result) => {
+          const score = Number(result.score) || 0;
+          const totalQuestions =
+            Number(result.total_questions) || 0;
+
+          const percentage =
+            totalQuestions > 0
+              ? (score / totalQuestions) * 100
+              : 0;
+
+          return total + percentage;
+        }, 0) / completedQuizzes
+      )
+    : 0;
+
+    const totalQuizzes = quizzes.length;
+
+const notAttemptedQuizzes =
+  Math.max(totalQuizzes - completedQuizzes, 0);
+
+const progressPercentage =
+  totalQuizzes > 0
+    ? Math.round(
+        (completedQuizzes / totalQuizzes) * 100
+      )
+    : 0;
+
+    // ==============================
+// PERFORMANCE CHART DATA
+// ==============================
+
+const performanceData = myResults.map((result) => {
+  const score = Number(result.score) || 0;
+  const total =
+    Number(result.total_questions) || 0;
+
+  const percentage =
+    total > 0
+      ? Math.round(
+          (score / total) * 100
+        )
+      : 0;
+
+  return {
+    quiz: result.title,
+    percentage,
+  };
+});
+
+
+const CustomXAxisTick = ({ x, y, payload }) => {
+  const text = payload.value || "";
+
+  const words = text.split(" ");
+  const lines = [];
+  let currentLine = "";
+
+  words.forEach((word) => {
+    const testLine = currentLine
+      ? `${currentLine} ${word}`
+      : word;
+
+    if (testLine.length > 14) {
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return (
+    <g
+      transform={`translate(${x}, ${
+        y + 15
+      })`}
+    >
+      <text
+        x={0}
+        y={0}
+        textAnchor="middle"
+        fontSize="11"
+        fill="#666"
+      >
+        {lines
+          .slice(0, 2)
+          .map((line, index) => (
+            <tspan
+              key={index}
+              x={0}
+              dy={
+                index === 0
+                  ? 12
+                  : 15
+              }
+            >
+              {line}
+            </tspan>
+          ))}
+      </text>
+    </g>
+  );
+};
   // ==============================
   // RENDER
   // ==============================
@@ -930,7 +1063,7 @@ const getResultStatus = (result) => {
                   </p>
 
                   <h2>
-                    0
+                    {completedQuizzes}
                   </h2>
 
                   <span>
@@ -952,7 +1085,7 @@ const getResultStatus = (result) => {
                   </p>
 
                   <h2>
-                    —
+                    {averageScore}%
                   </h2>
 
                   <span>
@@ -962,33 +1095,16 @@ const getResultStatus = (result) => {
 
               </div>
 
-              <div className="student-stat-card orange">
-
-                <div className="stat-icon">
-                  ♕
-                </div>
-
-                <div>
-                  <p>
-                    Certificates Earned
-                  </p>
-
-                  <h2>
-                    0
-                  </h2>
-
-                  <span>
-                    Keep going!
-                  </span>
-                </div>
-
-              </div>
 
             </section>
 
             {/* CONTENT GRID */}
 
             <section className="student-content-grid">
+
+                 {/* LEFT COLUMN */}
+
+                <div className="student-left-column">
 
               {/* QUIZZES */}
 
@@ -1036,10 +1152,11 @@ const getResultStatus = (result) => {
                     </div>
                   )}
 
+                 <div className="dashboard-quiz-scroll">
+
                 {!loadingQuizzes &&
                   !quizError &&
                   quizzes
-                    .slice(0, 3)
                     .map(
                       (
                         quiz,
@@ -1097,11 +1214,87 @@ const getResultStatus = (result) => {
                       )
                     )}
 
-              </div>
+                 </div>
 
-              {/* RIGHT COLUMN */}
+                  </div>
 
-              <div className="student-right-column">
+
+    {/* =========================
+        PERFORMANCE CHART
+    ========================= */}
+
+    <div className="performance-chart-card">
+
+      <div className="section-heading">
+
+        <div>
+          <span className="panel-label">
+            PERFORMANCE
+          </span>
+
+          <h2>
+            Quiz Performance
+          </h2>
+        </div>
+
+      </div>
+
+      {performanceData.length === 0 ? (
+
+        <div className="glass-message">
+          No performance data available yet.
+        </div>
+
+      ) : (
+
+        <div className="performance-chart-wrapper">
+
+          <ResponsiveContainer
+            width="100%"
+            height="100%"
+          >
+
+            <BarChart
+              data={performanceData}
+            >
+
+              
+            <XAxis
+  dataKey="quiz"
+  interval={0}
+  height={80}
+  tick={<CustomXAxisTick />}
+/>
+
+<YAxis
+  domain={[0, 100]}
+  tick={{
+    fontSize: 11,
+  }}
+/>
+
+              <Tooltip />
+
+              <Bar
+  dataKey="percentage"
+  fill="#8b5cf6"
+  radius={[8, 8, 0, 0]}
+/>
+
+            </BarChart>
+
+          </ResponsiveContainer>
+
+        </div>
+
+      )}
+
+    </div>
+</div>
+
+  {/* RIGHT COLUMN */}
+
+  <div className="student-right-column">
 
                 {/* PROGRESS */}
 
@@ -1120,7 +1313,7 @@ const getResultStatus = (result) => {
                     <div className="progress-inner">
 
                       <strong>
-                        0%
+                        {progressPercentage}%
                       </strong>
 
                       <span>
@@ -1139,7 +1332,7 @@ const getResultStatus = (result) => {
                       Completed
 
                       <strong>
-                        0 Quizzes
+                        {completedQuizzes} Quizzes 
                       </strong>
                     </div>
 
@@ -1159,8 +1352,7 @@ const getResultStatus = (result) => {
                       Not Attempted
 
                       <strong>
-                        {quizzes.length}{" "}
-                        Quizzes
+                        {notAttemptedQuizzes} Quizzes
                       </strong>
                     </div>
 
@@ -1246,8 +1438,89 @@ const getResultStatus = (result) => {
                   </div>
 
                 </div>
+                <div className="dashboard-panel">
 
+  <div className="panel-heading">
+    <div>
+      <span className="panel-label">
+        QUIZ HISTORY
+      </span>
+
+      <h3>
+        Recent Attempts
+      </h3>
+    </div>
+
+    <button
+      className="panel-link"
+      onClick={() =>
+        setActivePage("My Results")
+      }
+    >
+      View All
+    </button>
+  </div>
+
+  {myResults.length === 0 ? (
+    <p className="empty-dashboard">
+      No quiz attempts yet.
+    </p>
+  ) : (
+    <div className="recent-attempt-list">
+
+      {myResults
+        .slice(0, 3)
+        .map((result) => {
+          const score =
+            Number(result.score) || 0;
+
+          const total =
+            Number(result.total_questions) || 0;
+
+          const percentage =
+            total > 0
+              ? Math.round(
+                  (score / total) * 100
+                )
+              : 0;
+
+          const status =
+            getResultStatus(result);
+
+          return (
+            <div
+              className="recent-attempt-item"
+              key={result.attempt_id}
+            >
+              <div>
+                <strong>
+                  {result.title}
+                </strong>
+
+                <span>
+                  {score}/{total} · {percentage}%
+                </span>
               </div>
+
+              <span
+                className={
+                  status === "PASS" ||
+                  status === "Pass"
+                    ? "mini-result-pass"
+                    : "mini-result-fail"
+                }
+              >
+                {status}
+              </span>
+            </div>
+          );
+        })}
+
+    </div>
+  )}
+
+</div>
+</div>
 
             </section>
 
