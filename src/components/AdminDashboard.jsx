@@ -74,7 +74,8 @@ function AdminDashboard({ onLogout }) {
 
   const [questionText, setQuestionText] =
     useState("");
-
+const [questionExplanation, setQuestionExplanation] =
+  useState("");
   const [selectedCategoryId, setSelectedCategoryId] =
     useState("");
 
@@ -125,6 +126,7 @@ function AdminDashboard({ onLogout }) {
 
   const resetQuestionForm = () => {
     setQuestionText("");
+    setQuestionExplanation("");
     setSelectedCategoryId("");
     setQuestionOptions([
       {
@@ -946,6 +948,10 @@ const fetchResults = async () => {
       question.question_text || ""
     );
 
+    setQuestionExplanation(
+  question.explanation || ""
+);
+
     setSelectedCategoryId(
       question.category_id
         ? String(question.category_id)
@@ -1048,6 +1054,8 @@ const fetchResults = async () => {
 
         question_text:
           questionText.trim(),
+
+          explanation: questionExplanation.trim(),
 
         options:
           questionOptions.map(
@@ -2307,7 +2315,7 @@ const fetchResults = async () => {
 
             {/* QUESTION FORM */}
 
-            {showQuestionForm && (
+            {showQuestionForm && !editingQuestion && (
               <div className="quiz-form">
 
                 <h3>
@@ -2369,6 +2377,20 @@ const fetchResults = async () => {
                     )
                   }
                 />
+
+                <label>
+  Explanation
+</label>
+
+<textarea
+  placeholder="Explain why the correct answer is correct"
+  value={questionExplanation}
+  onChange={(event) =>
+    setQuestionExplanation(
+      event.target.value
+    )
+  }
+/>
 
                 <label>
                   Options
@@ -2517,67 +2539,203 @@ const fetchResults = async () => {
                   )}
 
                 {!loadingQuestions &&
-                  questionList.map(
-                    (question) => (
-                      <div
-                        className="question-card"
-                        key={
-                          question.id
-                        }
-                      >
+                  questionList.map((question) => (
+  <div
+    className="question-card"
+    key={question.id}
+  >
 
-                        <h3>
-                          {
-                            question.question_text
-                          }
-                        </h3>
+    <h3>
+      {question.question_text}
+    </h3>
 
-                        {question.options?.map(
-                          (option) => (
-                            <p
-                              key={
-                                option.id
-                              }
-                            >
-                              {option.is_correct
-                                ? "✅"
-                                : "○"}{" "}
-                              {
-                                option.option_text
-                              }
-                            </p>
-                          )
-                        )}
+    {question.explanation && (
+      <p>
+        <strong>Explanation:</strong>{" "}
+        {question.explanation}
+      </p>
+    )}
 
-                        <div className="question-actions">
+    {question.options?.map((option) => (
+      <p key={option.id}>
+        {option.is_correct ? "✅" : "○"}{" "}
+        {option.option_text}
+      </p>
+    ))}
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleEditQuestion(
-                                question
-                              )
-                            }
-                          >
-                            Edit
-                          </button>
+    <div className="question-actions">
 
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleDeleteQuestion(
-                                question.id
-                              )
-                            }
-                          >
-                            Delete
-                          </button>
+      <button
+        type="button"
+        onClick={() =>
+          handleEditQuestion(question)
+        }
+      >
+        Edit
+      </button>
 
-                        </div>
+      <button
+        type="button"
+        onClick={() =>
+          handleDeleteQuestion(question.id)
+        }
+      >
+        Delete
+      </button>
 
-                      </div>
-                    )
-                  )}
+    </div>
+
+    {/* EDIT FORM FOR THIS QUESTION ONLY */}
+
+    {editingQuestion?.id === question.id && (
+      <div className="quiz-form inline-question-edit">
+
+        <h3>
+          Edit Question
+        </h3>
+
+        <label>
+          Category
+        </label>
+
+        <select
+          value={selectedCategoryId}
+          onChange={(event) =>
+            setSelectedCategoryId(
+              event.target.value
+            )
+          }
+        >
+          <option value="">
+            -- Select Category --
+          </option>
+
+          {categories.map((category) => (
+            <option
+              key={category.id}
+              value={category.id}
+            >
+              {category.name}
+            </option>
+          ))}
+        </select>
+
+        <label>
+          Question
+        </label>
+
+        <textarea
+          placeholder="Enter question"
+          value={questionText}
+          onChange={(event) =>
+            setQuestionText(
+              event.target.value
+            )
+          }
+        />
+
+        <label>
+          Explanation
+        </label>
+
+        <textarea
+          placeholder="Explain why the correct answer is correct"
+          value={questionExplanation}
+          onChange={(event) =>
+            setQuestionExplanation(
+              event.target.value
+            )
+          }
+        />
+
+        <label>
+          Options
+        </label>
+
+        {questionOptions.map(
+          (option, index) => (
+            <div
+              key={index}
+              className="question-option-row"
+            >
+
+              <input
+                type="text"
+                placeholder={`Option ${index + 1}`}
+                value={option.option_text}
+                onChange={(event) => {
+                  const updated = [
+                    ...questionOptions,
+                  ];
+
+                  updated[index] = {
+                    ...updated[index],
+                    option_text:
+                      event.target.value,
+                  };
+
+                  setQuestionOptions(updated);
+                }}
+              />
+
+              <label>
+
+                <input
+                  type="radio"
+                  name={`correct-answer-${question.id}`}
+                  checked={
+                    option.is_correct
+                  }
+                  onChange={() => {
+                    setQuestionOptions(
+                      questionOptions.map(
+                        (
+                          item,
+                          optionIndex
+                        ) => ({
+                          ...item,
+                          is_correct:
+                            optionIndex === index,
+                        })
+                      )
+                    );
+                  }}
+                />
+
+                Correct
+
+              </label>
+
+            </div>
+          )
+        )}
+
+        <div className="quiz-form-actions">
+
+          <button
+            type="button"
+            onClick={resetQuestionForm}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            disabled={creatingQuestion}
+            onClick={handleSaveQuestion}
+          >
+            {creatingQuestion
+              ? "Updating..."
+              : "Update Question"}
+          </button>
+
+        </div>
+
+      </div>
+    )}
+
+  </div>
+))}
 
               </div>
             )}
@@ -2767,12 +2925,12 @@ const fetchResults = async () => {
 <td>
   <span
     className={
-      percentage >= 50
+      percentage >= 40
         ? "result-status pass"
         : "result-status fail"
     }
   >
-    {percentage >= 50
+    {percentage >= 40
       ? "Pass"
       : "Fail"}
   </span>

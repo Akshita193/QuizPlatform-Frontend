@@ -46,6 +46,7 @@ function StudentDashboard({ user, onLogout }) {
 
   const [isQuizSubmitted, setIsQuizSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittedResult, setSubmittedResult] = useState(null);
 
 
   // ==============================
@@ -55,6 +56,9 @@ function StudentDashboard({ user, onLogout }) {
 const [myResults, setMyResults] = useState([]);
 const [loadingResults, setLoadingResults] = useState(false);
 const [resultsError, setResultsError] = useState("");   
+const [selectedAttemptReview, setSelectedAttemptReview] = useState(null);
+const [loadingReview, setLoadingReview] = useState(false);
+const [reviewError, setReviewError] = useState("");
 
   // ==============================
   // FETCH PUBLISHED QUIZZES
@@ -70,7 +74,11 @@ const [resultsError, setResultsError] = useState("");
   }, [activePage]);
 
   useEffect(() => {
-  if (activePage === "My Results") {
+  if (
+    activePage === "Overview" ||
+    activePage === "My Quizzes" ||
+    activePage === "My Results"
+  ) {
     fetchMyResults();
   }
 }, [activePage]);
@@ -153,6 +161,39 @@ const fetchMyResults = async () => {
   }
 };
 
+
+const fetchAttemptReview = async (attemptId) => {
+  try {
+    setLoadingReview(true);
+    setReviewError("");
+
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+      `http://localhost:5001/api/quizzes/attempts/${attemptId}/review`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Failed to fetch answer review"
+      );
+    }
+
+    setSelectedAttemptReview(data);
+  } catch (error) {
+    console.error("Fetch review error:", error);
+    setReviewError(error.message);
+  } finally {
+    setLoadingReview(false);
+  }
+};
   // ==============================
   // START QUIZ
   // ==============================
@@ -531,10 +572,11 @@ const fetchMyResults = async () => {
       }
 
       // ==================================
-      // SUCCESS
-      // ==================================
+// SUCCESS
+// ==================================
 
-      setIsQuizSubmitted(true);
+setSubmittedResult(data.result);
+setIsQuizSubmitted(true);
 
       if (automaticSubmit) {
         alert(
@@ -572,15 +614,16 @@ const fetchMyResults = async () => {
     }
 
     setSelectedQuiz(null);
-    setQuizQuestions([]);
-    setSelectedAnswers({});
-    setCurrentQuestionIndex(0);
-    setTimeLeft(0);
-    setIsQuizSubmitted(false);
-    setIsSubmitting(false);
-    setQuestionError("");
+setQuizQuestions([]);
+setSelectedAnswers({});
+setCurrentQuestionIndex(0);
+setTimeLeft(0);
+setIsQuizSubmitted(false);
+setIsSubmitting(false);
+setSubmittedResult(null);
+setQuestionError("");
 
-    setActivePage("My Quizzes");
+setActivePage("My Quizzes");
   };
 
   // ==============================
@@ -608,6 +651,38 @@ const fetchMyResults = async () => {
     quizQuestions[
       currentQuestionIndex
     ];
+
+    const getQuizResult = (quizId) => {
+  return myResults.find(
+    (result) =>
+      Number(result.quiz_id) === Number(quizId)
+  );
+};
+
+// ==============================
+// RESULT STATUS
+// ==============================
+
+const getResultStatus = (result) => {
+  if (result.result_status) {
+    return result.result_status;
+  }
+
+  const score = Number(result.score) || 0;
+  const total =
+    Number(result.total_questions) || 0;
+
+  const percentage =
+    total > 0
+      ? Math.round(
+          (score / total) * 100
+        )
+      : 0;
+
+  return percentage >= 40
+    ? "PASS"
+    : "FAIL";
+};
 
   // ==============================
   // RENDER
@@ -1547,40 +1622,73 @@ const fetchMyResults = async () => {
                 SUBMITTED
             ===================================== */}
 
-            {isQuizSubmitted && (
-              <div className="quiz-submitted-card">
+{isQuizSubmitted && submittedResult && (
+  <div className="quiz-submitted-card">
 
-                <div className="success-icon">
-                  ✓
-                </div>
+    <div className="success-icon">
+      ✓
+    </div>
 
-                <h2>
-                  Quiz Submitted!
-                </h2>
+    <h2>
+      Quiz Submitted!
+    </h2>
 
-                <p>
-                  Your answers have
-                  been submitted
-                  successfully.
-                </p>
+    <p>
+      Your quiz has been submitted successfully.
+    </p>
 
-                <p>
-                  Your result will be
-                  available once the
-                  admin declares it.
-                </p>
+    <div className="submitted-result-summary">
 
-                <button
-                  type="button"
-                  onClick={
-                    handleBackToMyQuizzes
-                  }
-                >
-                  Back to My Quizzes
-                </button>
+      <div className="submitted-result-item">
+        <span>Score</span>
 
-              </div>
-            )}
+        <strong>
+          {submittedResult.score}/
+          {submittedResult.total_questions}
+        </strong>
+      </div>
+
+      <div className="submitted-result-item">
+        <span>Percentage</span>
+
+        <strong>
+          {submittedResult.total_questions > 0
+            ? Math.round(
+                (submittedResult.score /
+                  submittedResult.total_questions) *
+                  100
+              )
+            : 0}
+          %
+        </strong>
+      </div>
+
+      <div className="submitted-result-item">
+        <span>Status</span>
+
+        <strong
+          className={
+            submittedResult.result_status === "PASS" ||
+            submittedResult.result_status === "Pass"
+              ? "result-pass"
+              : "result-fail"
+          }
+        >
+          {submittedResult.result_status}
+        </strong>
+      </div>
+
+    </div>
+
+    <button
+      type="button"
+      onClick={handleBackToMyQuizzes}
+    >
+      Back to My Quizzes
+    </button>
+
+  </div>
+)}
 
           </section>
         )}
@@ -1676,6 +1784,8 @@ const fetchMyResults = async () => {
                   )
                 : 0;
 
+                const status = getResultStatus(result);
+
             return (
               <div
                 className="student-result-card"
@@ -1713,18 +1823,61 @@ const fetchMyResults = async () => {
                 </div>
 
                 {/* SCORE */}
+{/* ATTEMPT HISTORY DETAILS */}
 
-                <div className="result-score">
+<div className="attempt-history-details">
 
-                  <strong>
-                    {score}/{totalQuestions}
-                  </strong>
+  <div className="attempt-history-stat">
+    <span>Score</span>
+    <strong>
+      {score}/{totalQuestions}
+    </strong>
+  </div>
 
-                  <span>
-                    {percentage}%
-                  </span>
+  <div className="attempt-history-stat">
+    <span>Percentage</span>
+    <strong>
+      {percentage}%
+    </strong>
+  </div>
 
-                </div>
+  <div className="attempt-history-stat">
+    <span>Status</span>
+
+    <strong
+      className={
+        status === "PASS" ||
+        status === "Pass"
+          ? "result-pass"
+          : "result-fail"
+      }
+    >
+      {status}
+    </strong>
+  </div>
+
+  <div className="attempt-history-stat">
+    <span>Attempted On</span>
+
+    <strong>
+      {result.submitted_at
+        ? new Date(
+            result.submitted_at
+          ).toLocaleString()
+        : "—"}
+    </strong>
+  </div>
+
+</div>
+                <button
+  type="button"
+  className="review-answers-button"
+  onClick={() =>
+    fetchAttemptReview(result.attempt_id)
+  }
+>
+  Review Answers
+</button>
 
               </div>
             );
@@ -1732,6 +1885,100 @@ const fetchMyResults = async () => {
 
         </div>
       )}
+
+      {loadingReview && (
+  <div className="glass-message">
+    Loading answer review...
+  </div>
+)}
+
+{reviewError && (
+  <div className="glass-message error">
+    {reviewError}
+  </div>
+)}
+
+{selectedAttemptReview && (
+  <div className="answer-review-section">
+
+    <div className="section-heading">
+      <div>
+        <h2>Answer Review</h2>
+
+        <p>
+          {selectedAttemptReview.attempt.quiz_title}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={() =>
+          setSelectedAttemptReview(null)
+        }
+      >
+        Close Review
+      </button>
+    </div>
+
+    {selectedAttemptReview.review.map(
+      (item, index) => (
+        <div
+          className={
+            item.is_correct
+              ? "answer-review-card correct"
+              : "answer-review-card incorrect"
+          }
+          key={item.question_id}
+        >
+          <h3>
+            Question {index + 1}
+          </h3>
+
+          <p>
+            {item.question_text}
+          </p>
+
+          <div className="review-answer-row">
+            <span>Your Answer</span>
+
+            <strong>
+              {item.selected_option_text ||
+                "Not Answered"}
+            </strong>
+          </div>
+
+          <div className="review-answer-row">
+            <span>Correct Answer</span>
+
+            <strong>
+              {item.correct_option_text}
+            </strong>
+          </div>
+
+          <div className="review-status">
+            {item.is_correct
+              ? "✓ Correct"
+              : "✕ Incorrect"}
+          </div>
+          {item.explanation && (
+  <div className="review-explanation">
+
+    <strong>
+      Explanation
+    </strong>
+
+    <p>
+      {item.explanation}
+    </p>
+
+  </div>
+)}
+        </div>
+      )
+    )}
+
+  </div>
+)}
 
   </section>
 )}
