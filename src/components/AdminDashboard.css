@@ -1475,3 +1475,230 @@ body {
   max-width: none;
   min-width: 0;
 }
+
+/* =========================================
+   ATTEMPTS PER QUIZ
+========================================= */
+
+.attempts-per-quiz-section {
+  margin-bottom: 24px;
+  padding: 24px;
+
+  border-radius: 21px;
+
+  background:
+    rgba(255, 255, 255, 0.67);
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.9);
+
+  box-shadow:
+    0 12px 35px
+    rgba(78, 91, 150, 0.08);
+}
+
+.attempts-per-quiz-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.attempts-per-quiz-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  padding: 14px 16px;
+
+  border-radius: 14px;
+
+  background:
+    rgba(248, 249, 255, 0.8);
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.9);
+}
+
+.attempts-quiz-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attempts-quiz-info strong {
+  color: #26314d;
+  font-size: 13px;
+}
+
+.attempts-quiz-info span {
+  color: #8c94a8;
+  font-size: 11px;
+}
+
+.attempt-count-badge {
+  min-width: 36px;
+  height: 36px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: #eeeaff;
+  color: #6559df;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.attempt-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.attempt-summary-card {
+  padding: 16px;
+
+  border-radius: 14px;
+
+  background:
+    rgba(248, 249, 255, 0.85);
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.9);
+}
+
+.attempt-summary-card span {
+  display: block;
+
+  margin-bottom: 8px;
+
+  color: #8088a0;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.attempt-summary-card strong {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #252d49;
+
+  font-size: 24px;
+}
+
+.attempt-summary-card p {
+  margin: 0;
+
+  color: #9aa1b5;
+
+  font-size: 11px;
+}
+
+@media (max-width: 700px) {
+  .attempt-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pass-fail-section {
+  margin-bottom: 24px;
+  padding: 24px;
+
+  border-radius: 21px;
+
+  background:
+    rgba(255, 255, 255, 0.67);
+
+  border:
+    1px solid
+    rgba(255, 255, 255, 0.9);
+
+  box-shadow:
+    0 12px 35px
+    rgba(78, 91, 150, 0.08);
+}
+
+.pass-fail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.pass-fail-card {
+  padding: 18px;
+
+  border-radius: 14px;
+
+  background:
+    rgba(248, 249, 255, 0.85);
+}
+
+.pass-fail-card span {
+  display: block;
+
+  margin-bottom: 8px;
+
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.pass-fail-card strong {
+  display: block;
+
+  margin-bottom: 5px;
+
+  font-size: 26px;
+}
+
+.pass-fail-card p {
+  margin: 0;
+
+  font-size: 11px;
+}
+
+.pass-card {
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.pass-card span,
+.pass-card strong {
+  color: #16865d;
+}
+
+.pass-card p {
+  color: #6f9f8b;
+}
+
+.fail-card {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.fail-card span,
+.fail-card strong {
+  color: #c94b5a;
+}
+
+.fail-card p {
+  color: #a97880;
+}
+
+@media (max-width: 700px) {
+  .pass-fail-grid {
+    grid-template-columns: 1fr;
+  }
+}

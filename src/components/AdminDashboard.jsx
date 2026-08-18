@@ -1198,6 +1198,136 @@ const fetchResults = async () => {
   };
 
   // =========================================================
+// DAY 11 - ADMIN ANALYTICS
+// =========================================================
+
+const studentUsers = users.filter(
+  (user) =>
+    String(user.role).toUpperCase() ===
+    "STUDENT"
+);
+
+
+
+const totalStudents = studentUsers.length;
+
+const activeStudents = studentUsers.filter(
+  (user) => user.status === true
+).length;
+
+const attemptedStudentIds = new Set(
+  results
+    .map((result) =>
+      Number(result.student_id)
+    )
+    .filter((id) =>
+      Number.isInteger(id)
+    )
+);
+
+const studentsAttempted =
+  attemptedStudentIds.size;
+
+  // =========================================================
+// ATTEMPTS PER QUIZ
+// =========================================================
+
+const attemptsPerQuiz = results.reduce(
+  (quizAttempts, result) => {
+
+    const quizId = result.quiz_id;
+
+    const quizTitle =
+      result.quiz_title ||
+      result.title ||
+      "Unknown Quiz";
+
+    const existingQuiz =
+      quizAttempts.find(
+        (item) =>
+          String(item.quiz_id) ===
+          String(quizId)
+      );
+
+    if (existingQuiz) {
+      existingQuiz.attempts += 1;
+      
+    } else {
+      quizAttempts.push({
+        quiz_id: quizId,
+        quiz_title: quizTitle,
+        attempts: 1,
+      });
+    }
+
+    return quizAttempts;
+  },
+  []
+);
+console.log(
+  "ATTEMPTS PER QUIZ:",
+  attemptsPerQuiz
+);
+
+// =========================================================
+// ATTEMPT STATISTICS
+// =========================================================
+
+const totalAttempts = results.length;
+
+const averageAttemptScore =
+  totalAttempts > 0
+    ? Math.round(
+        results.reduce((sum, result) => {
+          const score = Number(result.score) || 0;
+          const total =
+            Number(result.total_questions) || 0;
+
+          const percentage =
+            total > 0
+              ? (score / total) * 100
+              : 0;
+
+          return sum + percentage;
+        }, 0) / totalAttempts
+      )
+    : 0;
+
+    // =========================================================
+// PASS / FAIL ANALYTICS
+// =========================================================
+
+const passedAttempts = results.filter((result) => {
+  const score = Number(result.score) || 0;
+  const total =
+    Number(result.total_questions) || 0;
+
+  const percentage =
+    total > 0
+      ? (score / total) * 100
+      : 0;
+
+  return percentage >= 40;
+}).length;
+
+const failedAttempts =
+  totalAttempts - passedAttempts;
+
+const passPercentage =
+  totalAttempts > 0
+    ? Math.round(
+        (passedAttempts / totalAttempts) * 100
+      )
+    : 0;
+
+const failPercentage =
+  totalAttempts > 0
+    ? Math.round(
+        (failedAttempts / totalAttempts) * 100
+      )
+    : 0;
+
+  // =========================================================
   // RENDER
   // =========================================================
 
@@ -1385,23 +1515,61 @@ const fetchResults = async () => {
 
               <div className="stat-card">
 
-                <div className="stat-icon stat-purple">
-                  👥
-                </div>
+  <div className="stat-icon stat-purple">
+    👥
+  </div>
 
-                <h3>
-                  Total Users
-                </h3>
+  <h3>
+    Total Students
+  </h3>
 
-                <p>
-                  {users.length}
-                </p>
+  <p>
+    {totalStudents}
+  </p>
 
-                <span className="stat-description">
-                  Registered users
-                </span>
+  <span className="stat-description">
+    Registered students
+  </span>
 
-              </div>
+</div>
+<div className="stat-card">
+
+  <div className="stat-icon stat-green">
+    ✓
+  </div>
+
+  <h3>
+    Active Students
+  </h3>
+
+  <p>
+    {activeStudents}
+  </p>
+
+  <span className="stat-description">
+    Currently active
+  </span>
+
+</div>
+<div className="stat-card">
+
+  <div className="stat-icon stat-orange">
+    📝
+  </div>
+
+  <h3>
+    Students Attempted
+  </h3>
+
+  <p>
+    {studentsAttempted}
+  </p>
+
+  <span className="stat-description">
+    Attempted a quiz
+  </span>
+
+</div>
 
               <div className="stat-card">
 
@@ -1469,6 +1637,130 @@ const fetchResults = async () => {
               </div>
 
             </section>
+
+            {/* =========================================
+    ATTEMPTS PER QUIZ
+========================================= */}
+
+<section className="attempts-per-quiz-section">
+
+  <div className="panel-heading">
+    <div>
+      <span className="panel-label">
+        ATTEMPT ANALYTICS
+      </span>
+
+      <h3>
+        Attempts Per Quiz
+      </h3>
+    </div>
+  </div>
+  <div className="attempt-summary-grid">
+
+  <div className="attempt-summary-card">
+    <span>Total Attempts</span>
+
+    <strong>
+      {totalAttempts}
+    </strong>
+
+    <p>
+      All quiz submissions
+    </p>
+  </div>
+
+  <div className="attempt-summary-card">
+    <span>Average Score</span>
+
+    <strong>
+      {averageAttemptScore}%
+    </strong>
+
+    <p>
+      Average across all attempts
+    </p>
+  </div>
+
+</div>
+
+  {attemptsPerQuiz.length === 0 ? (
+    <p className="empty-dashboard">
+      No quiz attempts available yet.
+    </p>
+  ) : (
+    <div className="attempts-per-quiz-list">
+
+      {attemptsPerQuiz.map((quiz) => (
+        <div
+          className="attempts-per-quiz-item"
+          key={quiz.quiz_id}
+        >
+
+          <div className="attempts-quiz-info">
+            <strong>
+              {quiz.quiz_title}
+            </strong>
+
+            <span>
+              {quiz.attempts} attempt
+              {quiz.attempts !== 1 ? "s" : ""}
+            </span>
+          </div>
+
+          <div className="attempt-count-badge">
+            {quiz.attempts}
+          </div>
+
+        </div>
+      ))}
+
+    </div>
+  )}
+
+</section>
+
+{/* =========================================
+    PASS / FAIL ANALYTICS
+========================================= */}
+
+<section className="pass-fail-section">
+
+  <div className="panel-heading">
+    <div>
+      <span className="panel-label">
+        RESULT ANALYTICS
+      </span>
+
+      <h3>Pass / Fail Analytics</h3>
+    </div>
+  </div>
+
+  <div className="pass-fail-grid">
+
+    <div className="pass-fail-card pass-card">
+      <span>Passed</span>
+
+      <strong>{passedAttempts}</strong>
+
+      <p>
+        {passPercentage}% of attempts
+      </p>
+    </div>
+
+    <div className="pass-fail-card fail-card">
+      <span>Failed</span>
+
+      <strong>{failedAttempts}</strong>
+
+      <p>
+        {failPercentage}% of attempts
+      </p>
+    </div>
+
+  </div>
+
+</section>
+            
 
             <section className="admin-dashboard-grid">
 
