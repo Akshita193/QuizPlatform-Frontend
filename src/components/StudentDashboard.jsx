@@ -69,6 +69,32 @@ const [selectedAttemptReview, setSelectedAttemptReview] = useState(null);
 const [loadingReview, setLoadingReview] = useState(false);
 const [reviewError, setReviewError] = useState("");
 
+// ==============================
+// LEADERBOARD STATE
+// ==============================
+
+const [overallLeaderboard, setOverallLeaderboard] =
+  useState([]);
+
+const [categoryLeaderboards, setCategoryLeaderboards] =
+  useState([]);
+
+const [selectedLeaderboardCategory, setSelectedLeaderboardCategory] =
+  useState("");
+
+const [
+  loadingOverallLeaderboard,
+  setLoadingOverallLeaderboard
+] = useState(false);
+
+const [
+  loadingCategoryLeaderboard,
+  setLoadingCategoryLeaderboard
+] = useState(false);
+
+const [leaderboardError, setLeaderboardError] =
+  useState("");
+
   // ==============================
   // FETCH PUBLISHED QUIZZES
   // ==============================
@@ -89,6 +115,13 @@ const [reviewError, setReviewError] = useState("");
     activePage === "My Results"
   ) {
     fetchMyResults();
+  }
+}, [activePage]);
+
+useEffect(() => {
+  if (activePage === "Leaderboard") {
+    fetchOverallLeaderboard();
+    fetchCategoryLeaderboard();
   }
 }, [activePage]);
 
@@ -167,6 +200,116 @@ const fetchMyResults = async () => {
     setResultsError(error.message);
   } finally {
     setLoadingResults(false);
+  }
+};
+
+
+// ==============================
+// FETCH OVERALL LEADERBOARD
+// ==============================
+
+const fetchOverallLeaderboard = async () => {
+  try {
+    setLoadingOverallLeaderboard(true);
+    setLeaderboardError("");
+
+    const token =
+      localStorage.getItem("token");
+
+    const response = await fetch(
+      "http://localhost:5001/api/quizzes/leaderboard/overall",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+          "Failed to fetch overall leaderboard"
+      );
+    }
+
+    setOverallLeaderboard(
+      data.leaderboard || []
+    );
+  } catch (error) {
+    console.error(
+      "Overall leaderboard error:",
+      error
+    );
+
+    setLeaderboardError(
+      error.message
+    );
+  } finally {
+    setLoadingOverallLeaderboard(false);
+  }
+};
+
+
+// ==============================
+// FETCH CATEGORY LEADERBOARD
+// ==============================
+
+const fetchCategoryLeaderboard = async () => {
+  try {
+    setLoadingCategoryLeaderboard(true);
+    setLeaderboardError("");
+
+    const token =
+      localStorage.getItem("token");
+
+    const response = await fetch(
+      "http://localhost:5001/api/quizzes/leaderboard/category",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+          "Failed to fetch category leaderboard"
+      );
+    }
+
+    const categories =
+      data.categories || [];
+
+    setCategoryLeaderboards(
+      categories
+    );
+
+    if (
+      categories.length > 0 &&
+      !selectedLeaderboardCategory
+    ) {
+      setSelectedLeaderboardCategory(
+        String(
+          categories[0].category_id
+        )
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Category leaderboard error:",
+      error
+    );
+
+    setLeaderboardError(
+      error.message
+    );
+  } finally {
+    setLoadingCategoryLeaderboard(false);
   }
 };
 
@@ -953,6 +1096,20 @@ const CustomXAxisTick = ({ x, y, payload }) => {
             <span>⚙</span>
             Settings
           </button>
+
+          <button
+  className={
+    activePage === "Leaderboard"
+      ? "active"
+      : ""
+  }
+  onClick={() =>
+    setActivePage("Leaderboard")
+  }
+>
+  <span>🏆</span>
+  Leaderboard
+</button>
 
           <button
             onClick={onLogout}
@@ -2322,6 +2479,311 @@ const CustomXAxisTick = ({ x, y, payload }) => {
 
           </section>
         )}
+
+        {/* =========================================
+    DAY 12 - STUDENT LEADERBOARD
+========================================= */}
+
+{activePage === "Leaderboard" && (
+  <div className="student-leaderboard-page">
+
+    <div className="student-page-heading">
+      <div>
+        <span className="panel-label">
+          PERFORMANCE
+        </span>
+
+        <h2>Leaderboard</h2>
+
+        <p>
+          See how you rank among other students.
+        </p>
+      </div>
+    </div>
+
+
+    {/* OVERALL LEADERBOARD */}
+
+    <section className="student-leaderboard-card">
+
+      <div className="leaderboard-card-heading">
+        <div>
+          <span className="panel-label">
+            OVERALL RANKING
+          </span>
+
+          <h3>Overall Leaderboard</h3>
+        </div>
+      </div>
+
+
+      {loadingOverallLeaderboard ? (
+        <p className="leaderboard-empty">
+          Loading leaderboard...
+        </p>
+      ) : leaderboardError ? (
+        <p className="error-message">
+          {leaderboardError}
+        </p>
+      ) : overallLeaderboard.length === 0 ? (
+        <p className="leaderboard-empty">
+          No leaderboard data available yet.
+        </p>
+      ) : (
+        <div className="student-leaderboard-table-wrapper">
+
+          <table className="student-leaderboard-table">
+
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Student</th>
+                <th>Attempts</th>
+                <th>Average Score</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              {overallLeaderboard.map((student) => {
+
+                const loggedInUser =
+                  JSON.parse(
+                    localStorage.getItem("user")
+                  );
+
+                const isCurrentStudent =
+                  Number(student.student_id) ===
+                  Number(loggedInUser?.id);
+
+                return (
+                  <tr
+                    key={student.student_id}
+                    className={
+                      isCurrentStudent
+                        ? "current-student-row"
+                        : ""
+                    }
+                  >
+
+                    <td>
+                      <span className="student-rank">
+                        {student.rank === 1
+                          ? "🥇"
+                          : student.rank === 2
+                          ? "🥈"
+                          : student.rank === 3
+                          ? "🥉"
+                          : `#${student.rank}`}
+                      </span>
+                    </td>
+
+                    <td>
+                      <strong>
+                        {student.student_name}
+                      </strong>
+
+                      {isCurrentStudent && (
+                        <span className="you-badge">
+                          You
+                        </span>
+                      )}
+                    </td>
+
+                    <td>
+                      {student.total_attempts}
+                    </td>
+
+                    <td>
+                      <strong className="leaderboard-score">
+                        {student.average_percentage}%
+                      </strong>
+                    </td>
+
+                  </tr>
+                );
+              })}
+
+            </tbody>
+
+          </table>
+
+        </div>
+      )}
+
+    </section>
+
+
+    {/* CATEGORY LEADERBOARD */}
+
+    <section className="student-leaderboard-card">
+
+      <div className="leaderboard-card-heading">
+
+        <div>
+          <span className="panel-label">
+            CATEGORY PERFORMANCE
+          </span>
+
+          <h3>Category Leaderboard</h3>
+        </div>
+
+
+        {categoryLeaderboards.length > 0 && (
+          <select
+            className="student-category-select"
+            value={selectedLeaderboardCategory}
+            onChange={(e) =>
+              setSelectedLeaderboardCategory(
+                e.target.value
+              )
+            }
+          >
+
+            {categoryLeaderboards.map(
+              (category) => (
+                <option
+                  key={category.category_id}
+                  value={category.category_id}
+                >
+                  {category.category_name}
+                </option>
+              )
+            )}
+
+          </select>
+        )}
+
+      </div>
+
+
+     {loadingCategoryLeaderboard ? (
+
+  <p className="leaderboard-empty">
+    Loading category leaderboard...
+  </p>
+
+) : leaderboardError ? (
+
+  <p className="error-message">
+    {leaderboardError}
+  </p>
+
+) : (
+
+  (() => {
+
+        const selectedCategory =
+          categoryLeaderboards.find(
+            (category) =>
+              String(category.category_id) ===
+              String(selectedLeaderboardCategory)
+          );
+
+        if (!selectedCategory) {
+          return (
+            <p className="leaderboard-empty">
+              No category leaderboard available.
+            </p>
+          );
+        }
+
+        return (
+          <div className="student-leaderboard-table-wrapper">
+
+            <table className="student-leaderboard-table">
+
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Student</th>
+                  <th>Correct</th>
+                  <th>Questions</th>
+                  <th>Score</th>
+                </tr>
+              </thead>
+
+              <tbody>
+
+                {selectedCategory.leaderboard.map(
+                  (student) => {
+
+                    const loggedInUser =
+                      JSON.parse(
+                        localStorage.getItem("user")
+                      );
+
+                    const isCurrentStudent =
+                      Number(student.student_id) ===
+                      Number(loggedInUser?.id);
+
+                    return (
+                      <tr
+                        key={student.student_id}
+                        className={
+                          isCurrentStudent
+                            ? "current-student-row"
+                            : ""
+                        }
+                      >
+
+                        <td>
+                          <span className="student-rank">
+                            {student.rank === 1
+                              ? "🥇"
+                              : student.rank === 2
+                              ? "🥈"
+                              : student.rank === 3
+                              ? "🥉"
+                              : `#${student.rank}`}
+                          </span>
+                        </td>
+
+                        <td>
+                          <strong>
+                            {student.student_name}
+                          </strong>
+
+                          {isCurrentStudent && (
+                            <span className="you-badge">
+                              You
+                            </span>
+                          )}
+                        </td>
+
+                        <td>
+                          {student.correct_answers}
+                        </td>
+
+                        <td>
+                          {student.total_answers}
+                        </td>
+
+                        <td>
+                          <strong className="leaderboard-score">
+                            {student.percentage}%
+                          </strong>
+                        </td>
+
+                      </tr>
+                    );
+                  }
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+        );
+      })()
+
+)}
+
+    </section>
+
+  </div>
+)}
 
       </main>
     </div>

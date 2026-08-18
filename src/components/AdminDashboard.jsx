@@ -79,6 +79,28 @@ const [questionExplanation, setQuestionExplanation] =
   const [selectedCategoryId, setSelectedCategoryId] =
     useState("");
 
+    // =========================================================
+// LEADERBOARD
+// =========================================================
+
+const [leaderboard, setLeaderboard] = useState([]);
+const [loadingLeaderboard, setLoadingLeaderboard] =
+  useState(false);
+const [leaderboardError, setLeaderboardError] =
+  useState("");
+
+  const [categoryLeaderboards, setCategoryLeaderboards] =
+  useState([]);
+
+const [selectedLeaderboardCategory, setSelectedLeaderboardCategory] =
+  useState("");
+
+const [loadingCategoryLeaderboard, setLoadingCategoryLeaderboard] =
+  useState(false);
+
+const [categoryLeaderboardError, setCategoryLeaderboardError] =
+  useState("");
+
   const emptyOptions = [
     {
       option_text: "",
@@ -395,6 +417,92 @@ const fetchResults = async () => {
   }
 };
 
+const fetchOverallLeaderboard = async () => {
+  try {
+    setLoadingLeaderboard(true);
+    setLeaderboardError("");
+
+    const response = await fetch(
+      "http://localhost:5001/api/quizzes/leaderboard/overall",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+          "Failed to fetch leaderboard"
+      );
+    }
+
+    setLeaderboard(data.leaderboard || []);
+  } catch (error) {
+    console.error(
+      "Fetch leaderboard error:",
+      error
+    );
+
+    setLeaderboardError(error.message);
+  } finally {
+    setLoadingLeaderboard(false);
+  }
+};
+
+const fetchCategoryLeaderboard = async () => {
+  try {
+    setLoadingCategoryLeaderboard(true);
+    setCategoryLeaderboardError("");
+
+    const response = await fetch(
+      "http://localhost:5001/api/quizzes/leaderboard/category",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+          "Failed to fetch category leaderboard"
+      );
+    }
+
+    const categories = data.categories || [];
+
+    setCategoryLeaderboards(categories);
+
+    // Automatically select first category
+    if (
+      categories.length > 0 &&
+      !selectedLeaderboardCategory
+    ) {
+      setSelectedLeaderboardCategory(
+        String(categories[0].category_id)
+      );
+    }
+  } catch (error) {
+    console.error(
+      "Fetch category leaderboard error:",
+      error
+    );
+
+    setCategoryLeaderboardError(
+      error.message
+    );
+  } finally {
+    setLoadingCategoryLeaderboard(false);
+  }
+};
+
   // =========================================================
   // INITIAL / PAGE DATA
   // =========================================================
@@ -404,6 +512,8 @@ const fetchResults = async () => {
       fetchUsers();
       fetchQuizzes();
       fetchResults();
+      fetchOverallLeaderboard();
+      fetchCategoryLeaderboard();
     }
 
     if (activePage === "Users") {
@@ -1327,6 +1437,13 @@ const failPercentage =
       )
     : 0;
 
+    const selectedCategoryLeaderboard =
+  categoryLeaderboards.find(
+    (category) =>
+      String(category.category_id) ===
+      String(selectedLeaderboardCategory)
+  );  
+
   // =========================================================
   // RENDER
   // =========================================================
@@ -1760,6 +1877,242 @@ const failPercentage =
   </div>
 
 </section>
+
+{/* =========================================
+    DAY 12 - OVERALL LEADERBOARD
+========================================= */}
+
+<section className="leaderboard-section">
+
+  <div className="panel-heading">
+    <div>
+      <span className="panel-label">
+        DAY 12
+      </span>
+
+      <h3>Overall Leaderboard</h3>
+    </div>
+  </div>
+
+  {loadingLeaderboard && (
+    <p className="empty-dashboard">
+      Loading leaderboard...
+    </p>
+  )}
+
+  {leaderboardError && (
+    <p className="error-message">
+      {leaderboardError}
+    </p>
+  )}
+
+  {!loadingLeaderboard &&
+    !leaderboardError &&
+    leaderboard.length === 0 && (
+      <p className="empty-dashboard">
+        No leaderboard data available yet.
+      </p>
+    )}
+
+  {!loadingLeaderboard &&
+    !leaderboardError &&
+    leaderboard.length > 0 && (
+      <div className="leaderboard-table-wrapper">
+
+        <table className="leaderboard-table">
+
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Student</th>
+              <th>Attempts</th>
+              <th>Average Score</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {leaderboard.map((student) => (
+              <tr key={student.student_id}>
+
+                <td>
+                  <span
+                    className={`leaderboard-rank rank-${student.rank}`}
+                  >
+                    {student.rank === 1
+                      ? "🥇"
+                      : student.rank === 2
+                      ? "🥈"
+                      : student.rank === 3
+                      ? "🥉"
+                      : `#${student.rank}`}
+                  </span>
+                </td>
+
+                <td>
+                  {student.student_name}
+                </td>
+
+                <td>
+                  {student.total_attempts}
+                </td>
+
+                <td>
+                  {student.average_percentage}%
+                </td>
+
+              </tr>
+            ))}
+
+          </tbody>
+
+        </table>
+
+      </div>
+    )}
+
+</section>  
+
+{/* =========================================
+    CATEGORY LEADERBOARD
+========================================= */}
+
+<section className="leaderboard-section">
+
+  <div className="panel-heading">
+
+    <div>
+      <span className="panel-label">
+        CATEGORY PERFORMANCE
+      </span>
+
+      <h3>
+        Category Leaderboard
+      </h3>
+    </div>
+
+
+    {categoryLeaderboards.length > 0 && (
+      <select
+        className="leaderboard-category-select"
+        value={selectedLeaderboardCategory}
+        onChange={(e) =>
+          setSelectedLeaderboardCategory(
+            e.target.value
+          )
+        }
+      >
+
+        {categoryLeaderboards.map(
+          (category) => (
+            <option
+              key={category.category_id}
+              value={category.category_id}
+            >
+              {category.category_name}
+            </option>
+          )
+        )}
+
+      </select>
+    )}
+
+  </div>
+
+
+  {loadingCategoryLeaderboard && (
+    <p className="empty-dashboard">
+      Loading category leaderboard...
+    </p>
+  )}
+
+
+  {categoryLeaderboardError && (
+    <p className="error-message">
+      {categoryLeaderboardError}
+    </p>
+  )}
+
+
+  {!loadingCategoryLeaderboard &&
+    !categoryLeaderboardError &&
+    categoryLeaderboards.length === 0 && (
+      <p className="empty-dashboard">
+        No category leaderboard data available yet.
+      </p>
+    )}
+
+
+  {!loadingCategoryLeaderboard &&
+    !categoryLeaderboardError &&
+    selectedCategoryLeaderboard && (
+
+      <div className="leaderboard-table-wrapper">
+
+        <table className="leaderboard-table">
+
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Student</th>
+              <th>Correct</th>
+              <th>Questions</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+
+          <tbody>
+
+            {selectedCategoryLeaderboard.leaderboard.map(
+              (student) => (
+
+                <tr key={student.student_id}>
+
+                  <td>
+                    <span
+                      className={`leaderboard-rank rank-${student.rank}`}
+                    >
+                      {student.rank === 1
+                        ? "🥇"
+                        : student.rank === 2
+                        ? "🥈"
+                        : student.rank === 3
+                        ? "🥉"
+                        : `#${student.rank}`}
+                    </span>
+                  </td>
+
+                  <td>
+                    {student.student_name}
+                  </td>
+
+                  <td>
+                    {student.correct_answers}
+                  </td>
+
+                  <td>
+                    {student.total_answers}
+                  </td>
+
+                  <td>
+                    <strong>
+                      {student.percentage}%
+                    </strong>
+                  </td>
+
+                </tr>
+
+              )
+            )}
+
+          </tbody>
+
+        </table>
+
+      </div>
+    )}
+
+</section>
             
 
             <section className="admin-dashboard-grid">
@@ -1981,6 +2334,8 @@ const failPercentage =
               </div>
 
             </section>
+
+
 
           </>
         )}
