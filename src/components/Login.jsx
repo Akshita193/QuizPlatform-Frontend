@@ -1,7 +1,11 @@
 import { useState } from "react";
 import "./Login.css";
 
-function Login({ onLogin, onRegister }) {
+ function Login({
+  onLogin,
+  onRegister,
+  onForgotPassword,
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -164,6 +168,16 @@ function Login({ onLogin, onRegister }) {
           </div>
 
         </div>
+
+        <div className="forgot-password-row">
+  <button
+    type="button"
+    className="forgot-password-button"
+    onClick={onForgotPassword}
+  >
+    Forgot Password?
+  </button>
+</div>
 
         {error && (
           <div className="login-error-message">

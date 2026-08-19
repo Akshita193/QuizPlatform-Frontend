@@ -95,6 +95,7 @@ const [
 const [leaderboardError, setLeaderboardError] =
   useState("");
 
+ 
   // ==============================
   // FETCH PUBLISHED QUIZZES
   // ==============================
@@ -960,6 +961,12 @@ const CustomXAxisTick = ({ x, y, payload }) => {
     </g>
   );
 };
+
+const hasCompletedQuiz = (quizId) => {
+  return myResults.some(
+    (result) => Number(result.quiz_id) === Number(quizId)
+  );
+};
   // ==============================
   // RENDER
   // ==============================
@@ -1350,22 +1357,28 @@ const CustomXAxisTick = ({ x, y, payload }) => {
                             Quiz
                           </div>
 
-                          <button
-                            type="button"
-                            className="start-quiz-button"
-                            onClick={() =>
-                              handleStartQuiz(
-                                quiz
-                              )
-                            }
-                            disabled={
-                              loadingQuestions
-                            }
-                          >
-                            {loadingQuestions
-                              ? "Loading..."
-                              : "Start Quiz"}
-                          </button>
+                          {hasCompletedQuiz(quiz.id) ? (
+  <button
+    type="button"
+    className="quiz-completed-button"
+    disabled
+  >
+    ✓ Completed
+  </button>
+) : (
+  <button
+    type="button"
+    className="start-quiz-button"
+    onClick={() =>
+      handleStartQuiz(quiz)
+    }
+    disabled={loadingQuestions}
+  >
+    {loadingQuestions
+      ? "Loading..."
+      : "Start Quiz"}
+  </button>
+)}
 
                         </div>
                       )
@@ -1760,22 +1773,28 @@ const CustomXAxisTick = ({ x, y, payload }) => {
                         "Test your knowledge and improve your skills."}
                     </p>
 
-                    <button
-                      type="button"
-                      className="start-quiz-button"
-                      onClick={() =>
-                        handleStartQuiz(
-                          quiz
-                        )
-                      }
-                      disabled={
-                        loadingQuestions
-                      }
-                    >
-                      {loadingQuestions
-                        ? "Loading..."
-                        : "Start Quiz"}
-                    </button>
+                    {hasCompletedQuiz(quiz.id) ? (
+  <button
+    type="button"
+    className="quiz-completed-button"
+    disabled
+  >
+    ✓ Completed
+  </button>
+) : (
+  <button
+    type="button"
+    className="start-quiz-button"
+    onClick={() =>
+      handleStartQuiz(quiz)
+    }
+    disabled={loadingQuestions}
+  >
+    {loadingQuestions
+      ? "Loading..."
+      : "Start Quiz"}
+  </button>
+)}
 
                   </div>
 
@@ -1800,17 +1819,12 @@ const CustomXAxisTick = ({ x, y, payload }) => {
             <div className="quiz-screen-header">
 
               <button
-                type="button"
-                className="back-quiz-button"
-                onClick={
-                  handleExitQuiz
-                }
-                disabled={
-                  isSubmitting
-                }
-              >
-                ← Back to Quizzes
-              </button>
+  className="back-to-quizzes-button"
+  onClick={handleBackToMyQuizzes}
+>
+  <span>←</span>
+  Back to Quizzes
+</button>
 
               <div className="quiz-screen-title">
 
@@ -2110,12 +2124,7 @@ const CustomXAxisTick = ({ x, y, payload }) => {
 
     </div>
 
-    <button
-      type="button"
-      onClick={handleBackToMyQuizzes}
-    >
-      Back to My Quizzes
-    </button>
+    
 
   </div>
 )}

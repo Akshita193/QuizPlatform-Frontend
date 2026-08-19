@@ -1312,7 +1312,7 @@
 .recent-quiz-item {
   display: flex;
 
-  align-items: center;
+  align-items: flex-start;
 
   gap: 12px;
 
@@ -1364,18 +1364,15 @@
 
 .recent-quiz-info span {
   display: block;
+  margin-top: 5px;
 
-  margin-top: 3px;
-
-  overflow: hidden;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 
   color: #9299aa;
-
   font-size: 10px;
+  line-height: 1.5;
 }
 
 .empty-dashboard {
@@ -1804,4 +1801,430 @@ body {
     width: 100%;
     margin-top: 12px;
   }
+}
+
+/* =========================================================
+   ADMIN RESULTS - LAVENDER PURPLE UI
+========================================================= */
+
+.results-management {
+  width: 100%;
+
+  padding: 26px;
+
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.82),
+      rgba(244, 241, 255, 0.72)
+    );
+
+  border:
+    1px solid rgba(255, 255, 255, 0.92);
+
+  box-shadow:
+    0 14px 40px
+    rgba(78, 91, 150, 0.09);
+
+  backdrop-filter: blur(18px);
+}
+
+
+/* =========================================================
+   RESULTS HEADER
+========================================================= */
+
+.results-management .section-header {
+  margin-bottom: 24px;
+
+  padding-bottom: 18px;
+
+  border-bottom:
+    1px solid rgba(210, 205, 235, 0.55);
+}
+
+.results-management .section-header h2 {
+  margin: 0 0 6px;
+
+  color: #202944;
+
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.results-management .section-header p {
+  margin: 0;
+
+  color: #7c849c;
+
+  font-size: 12px;
+}
+
+
+/* REFRESH BUTTON */
+
+.results-management
+.create-quiz-button {
+  padding: 9px 15px;
+
+  border-radius: 11px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #6958df,
+      #8e68ef
+    );
+
+  color: white;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  box-shadow:
+    0 7px 18px
+    rgba(105, 88, 223, 0.2);
+}
+
+
+/* =========================================================
+   TABLE CONTAINER
+========================================================= */
+
+.results-management
+.users-table-container {
+  width: 100%;
+
+  overflow-x: auto;
+
+  padding: 3px;
+
+  border-radius: 17px;
+
+  background:
+    rgba(255, 255, 255, 0.52);
+
+  border:
+    1px solid rgba(230, 226, 247, 0.9);
+}
+
+
+/* CUSTOM SCROLLBAR */
+
+.results-management
+.users-table-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.results-management
+.users-table-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.results-management
+.users-table-container::-webkit-scrollbar-thumb {
+  background:
+    rgba(118, 93, 226, 0.25);
+
+  border-radius: 20px;
+}
+
+
+/* =========================================================
+   RESULTS TABLE
+========================================================= */
+
+.results-management
+.users-table {
+  width: 100%;
+
+  min-width: 1050px;
+
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+
+/* TABLE HEADER */
+
+.results-management
+.users-table thead th {
+  padding: 14px 15px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #f0edff,
+      #ebe8fb
+    );
+
+  color: #686f89;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.65px;
+
+  border-bottom:
+    1px solid
+    rgba(210, 205, 235, 0.75);
+
+  white-space: nowrap;
+}
+
+
+/* FIRST HEADER */
+
+.results-management
+.users-table thead th:first-child {
+  border-top-left-radius: 14px;
+}
+
+
+/* LAST HEADER */
+
+.results-management
+.users-table thead th:last-child {
+  border-top-right-radius: 14px;
+}
+
+
+/* =========================================================
+   TABLE CELLS
+========================================================= */
+
+.results-management
+.users-table tbody td {
+  padding: 15px;
+
+  color: #414a63;
+
+  font-size: 12px;
+
+  border-bottom:
+    1px solid
+    rgba(225, 222, 240, 0.65);
+
+  background:
+    rgba(255, 255, 255, 0.7);
+
+  vertical-align: middle;
+}
+
+
+/* ROW HOVER */
+
+.results-management
+.users-table tbody tr {
+  transition:
+    transform 0.18s ease,
+    background 0.18s ease;
+}
+
+.results-management
+.users-table tbody tr:hover td {
+  background:
+    rgba(242, 239, 255, 0.85);
+}
+
+
+/* STUDENT NAME */
+
+.results-management
+.users-table tbody td:first-child {
+  color: #282f4c;
+
+  font-weight: 750;
+}
+
+
+/* EMAIL */
+
+.results-management
+.users-table tbody td:nth-child(2) {
+  color: #7e8498;
+
+  font-size: 11px;
+}
+
+
+/* QUIZ NAME */
+
+.results-management
+.users-table tbody td:nth-child(3) {
+  color: #5e52c9;
+
+  font-weight: 700;
+}
+
+
+/* SCORE */
+
+.results-management
+.users-table tbody td:nth-child(4),
+.results-management
+.users-table tbody td:nth-child(5) {
+  font-weight: 700;
+
+  color: #303852;
+
+  text-align: center;
+}
+
+
+/* PERCENTAGE */
+
+.results-management
+.users-table tbody td:nth-child(6) {
+  color: #7458df;
+
+  font-weight: 800;
+
+  text-align: center;
+}
+
+
+/* DATE */
+
+.results-management
+.users-table tbody td:last-child {
+  color: #8a90a4;
+
+  font-size: 10px;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   PASS / FAIL BADGES
+========================================================= */
+
+.result-status {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-width: 58px;
+
+  padding: 6px 11px;
+
+  border-radius: 20px;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.4px;
+}
+
+
+.result-status.pass {
+  background:
+    linear-gradient(
+      135deg,
+      #dcfce7,
+      #e8fff0
+    );
+
+  color: #15803d;
+
+  border:
+    1px solid rgba(34, 197, 94, 0.15);
+}
+
+
+.result-status.fail {
+  background:
+    linear-gradient(
+      135deg,
+      #fee2e2,
+      #fff0f2
+    );
+
+  color: #b91c1c;
+
+  border:
+    1px solid rgba(239, 68, 68, 0.14);
+}
+
+
+/* =========================================================
+   EMPTY RESULTS
+========================================================= */
+
+.results-management
+.users-table-container > p {
+  margin: 0;
+
+  padding: 45px 20px;
+
+  text-align: center;
+
+  color: #8e94aa;
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   LOADING
+========================================================= */
+
+.results-management > p {
+  padding: 15px;
+
+  border-radius: 12px;
+
+  background:
+    rgba(244, 241, 255, 0.8);
+
+  color: #7464d7;
+
+  font-size: 12px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+
+  .results-management {
+    padding: 20px;
+  }
+
+  .results-management
+  .section-header {
+    align-items: flex-start;
+  }
+
+}
+
+
+@media (max-width: 650px) {
+
+  .results-management {
+    padding: 16px;
+  }
+
+  .results-management
+  .section-header {
+    flex-direction: column;
+  }
+
+  .results-management
+  .create-quiz-button {
+    width: 100%;
+  }
+
 }

@@ -101,6 +101,15 @@ const [loadingCategoryLeaderboard, setLoadingCategoryLeaderboard] =
 const [categoryLeaderboardError, setCategoryLeaderboardError] =
   useState("");
 
+  const [showAdminForm, setShowAdminForm] = useState(false);
+
+const [adminName, setAdminName] = useState("");
+const [adminEmail, setAdminEmail] = useState("");
+const [adminPassword, setAdminPassword] = useState("");
+
+const [creatingAdmin, setCreatingAdmin] = useState(false);
+const [adminError, setAdminError] = useState("");
+
   const emptyOptions = [
     {
       option_text: "",
@@ -1444,6 +1453,70 @@ const failPercentage =
       String(selectedLeaderboardCategory)
   );  
 
+
+  const handleCreateAdmin = async () => {
+  try {
+    setCreatingAdmin(true);
+    setAdminError("");
+
+    if (
+      !adminName.trim() ||
+      !adminEmail.trim() ||
+      !adminPassword
+    ) {
+      throw new Error(
+        "Name, email and password are required"
+      );
+    }
+
+    const response = await fetch(
+      "http://localhost:5001/api/auth/create-admin",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+
+        body: JSON.stringify({
+          name: adminName.trim(),
+          email: adminEmail.trim(),
+          password: adminPassword,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+          "Failed to create admin"
+      );
+    }
+
+    setAdminName("");
+    setAdminEmail("");
+    setAdminPassword("");
+    setShowAdminForm(false);
+
+    fetchUsers();
+
+    alert("Admin created successfully!");
+
+  } catch (error) {
+    console.error(
+      "Create admin error:",
+      error
+    );
+
+    setAdminError(error.message);
+  } finally {
+    setCreatingAdmin(false);
+  }
+};
+
   // =========================================================
   // RENDER
   // =========================================================
@@ -2348,9 +2421,86 @@ const failPercentage =
           "Users" && (
           <section className="user-management">
 
-            <h2>
-              User Management
-            </h2>
+            <div className="section-header">
+
+  <h2>User Management</h2>
+
+  <button
+    className="create-quiz-button"
+    onClick={() =>
+      setShowAdminForm(true)
+    }
+  >
+    + Add Admin
+  </button>
+
+</div>
+{showAdminForm && (
+  <div className="quiz-form">
+
+    <h3>
+      Create Admin Account
+    </h3>
+
+    <input
+      type="text"
+      placeholder="Admin name"
+      value={adminName}
+      onChange={(e) =>
+        setAdminName(e.target.value)
+      }
+    />
+
+    <input
+      type="email"
+      placeholder="Admin email"
+      value={adminEmail}
+      onChange={(e) =>
+        setAdminEmail(e.target.value)
+      }
+    />
+
+    <input
+      type="password"
+      placeholder="Admin password"
+      value={adminPassword}
+      onChange={(e) =>
+        setAdminPassword(e.target.value)
+      }
+    />
+
+    {adminError && (
+      <p className="error-message">
+        {adminError}
+      </p>
+    )}
+
+    <div className="quiz-form-actions">
+
+      <button
+        type="button"
+        onClick={() => {
+          setShowAdminForm(false);
+          setAdminError("");
+        }}
+      >
+        Cancel
+      </button>
+
+      <button
+        type="button"
+        onClick={handleCreateAdmin}
+        disabled={creatingAdmin}
+      >
+        {creatingAdmin
+          ? "Creating..."
+          : "Create Admin"}
+      </button>
+
+    </div>
+
+  </div>
+)}
 
             {loadingUsers && (
               <p>
@@ -2450,8 +2600,8 @@ const failPercentage =
 
                 </div>
               )}
-
           </section>
+          
         )}
 
         {/* ===================================================

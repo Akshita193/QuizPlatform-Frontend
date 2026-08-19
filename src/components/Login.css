@@ -528,3 +528,29 @@
   font-size: 12px;
   font-weight: 600;
 }
+
+.forgot-password-row {
+  display: flex;
+  justify-content: flex-end;
+
+  margin-top: -6px;
+  margin-bottom: 14px;
+}
+
+.forgot-password-button {
+  padding: 0;
+
+  border: none;
+  background: transparent;
+
+  color: #6f5de7;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.forgot-password-button:hover {
+  text-decoration: underline;
+}
